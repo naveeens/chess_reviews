@@ -24,7 +24,7 @@ class MainActivity : ComponentActivity() {
                 val style = SystemBarStyle.dark(argb)
                 enableEdgeToEdge(statusBarStyle = style, navigationBarStyle = style)
             }
-            ChessTheme {
+            ChessTheme(settings.accent) {
                 MainScreen(settings)
             }
         }

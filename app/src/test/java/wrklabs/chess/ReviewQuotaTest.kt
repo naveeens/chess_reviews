@@ -8,12 +8,12 @@ import org.junit.Test
 import wrklabs.chess.billing.ReviewQuota
 
 class ReviewQuotaTest {
-    private val day = 24L * 60 * 60 * 1000
+    private val hour = 60L * 60 * 1000
 
     @Test
-    fun fiveFreeReviewsAWeek() {
-        assertTrue(ReviewQuota.allowed(false, listOf(1, 2, 3, 4)))
-        assertFalse(ReviewQuota.allowed(false, listOf(1, 2, 3, 4, 5)))
+    fun twentyFreeReviewsADay() {
+        assertTrue(ReviewQuota.allowed(false, List(19) { it.toLong() }))
+        assertFalse(ReviewQuota.allowed(false, List(20) { it.toLong() }))
     }
 
     @Test
@@ -22,16 +22,16 @@ class ReviewQuotaTest {
     }
 
     @Test
-    fun theNextOneComesBackAWeekAfterTheOldestOfTheLastFive() {
-        assertNull(ReviewQuota.nextFreeAt(listOf(1, 2, 3, 4)))
-        val times = listOf(day, 2 * day, 3 * day, 4 * day, 5 * day)
-        assertEquals(day + ReviewQuota.WEEK_MS, ReviewQuota.nextFreeAt(times))
+    fun theNextOneComesBackADayAfterTheOldestOfTheLastTwenty() {
+        assertNull(ReviewQuota.nextFreeAt(List(19) { it.toLong() }))
+        val times = List(20) { (it + 1) * hour }
+        assertEquals(hour + ReviewQuota.DAY_MS, ReviewQuota.nextFreeAt(times))
     }
 
     @Test
     fun anOldReviewDroppingOutFreesASlot() {
-        // Seven reviews in the list (older ones not yet filtered): the fifth newest decides.
-        val times = List(7) { (it + 1) * day }
-        assertEquals(3 * day + ReviewQuota.WEEK_MS, ReviewQuota.nextFreeAt(times))
+        // Twenty-two reviews in the list (older ones not yet filtered): the twentieth newest decides.
+        val times = List(22) { (it + 1) * hour }
+        assertEquals(3 * hour + ReviewQuota.DAY_MS, ReviewQuota.nextFreeAt(times))
     }
 }

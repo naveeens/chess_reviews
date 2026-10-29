@@ -57,7 +57,8 @@ fun RCard(
     )
 }
 
-enum class ButtonStyle { Primary, Tonal, Ghost }
+/** OnCard and OnCardSoft are for buttons on the accent-coloured card, where the accent itself would vanish. */
+enum class ButtonStyle { Primary, Tonal, Ghost, OnCard, OnCardSoft }
 
 @Composable
 fun RButton(
@@ -74,6 +75,8 @@ fun RButton(
         ButtonStyle.Primary -> c.brand to c.brandInk
         ButtonStyle.Tonal -> c.button to c.text
         ButtonStyle.Ghost -> Color.Transparent to c.brand
+        ButtonStyle.OnCard -> c.brandCardText to c.brandCard
+        ButtonStyle.OnCardSoft -> c.brandCardText.copy(alpha = 0.12f) to c.brandCardText
     }
     Row(
         modifier = modifier

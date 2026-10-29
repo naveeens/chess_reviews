@@ -6,27 +6,31 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import wrklabs.chess.ui.BoardTheme
+import wrklabs.chess.ui.theme.AccentChoice
 
 /** How hard the engine looks: a depth for each position of a review and the most time it may take over it, and the depth of the live lines in Analyze. */
 enum class ReviewSpeed(val label: String, val depth: Int, val moveMs: Long, val liveDepth: Int, val hint: String) {
-    FAST("Fast", 10, 120, 16, "Reviews are about 10 seconds a game. Finds the blunders. Live analysis depth 16."),
-    BALANCED("Balanced", 12, 300, 20, "Reviews are about 25 seconds a game. Live analysis depth 20."),
-    DEEP("Deep", 16, 800, 26, "Reviews are about a minute a game. More accurate. Live analysis depth 26."),
+    FAST("Fast", 12, 200, 16, "Reviews are about 15 seconds a game. Finds the blunders. Live analysis depth 16."),
+    BALANCED("Balanced", 14, 450, 20, "Reviews are about 35 seconds a game. Live analysis depth 20."),
+    DEEP("Deep", 18, 1200, 26, "Reviews are about a minute and a half a game. More accurate. Live analysis depth 26."),
 }
 
 data class AppSettings(
+    val accent: AccentChoice = AccentChoice.DENIM,
     val boardTheme: BoardTheme = BoardTheme.GREEN,
     val coordinates: Boolean = true,
     val highlightLastMove: Boolean = true,
     val showLegalMoves: Boolean = true,
+    /** Next to each player: the pieces they have taken, and the points they are ahead. */
+    val showMaterial: Boolean = true,
     val showArrows: Boolean = true,
     /** The Analyze tab's engine: off, it neither searches nor shows the bar and lines. */
     val analysisEngine: Boolean = true,
     val showEvalBar: Boolean = true,
     /** On the Analyze tab: an arrow for what the opponent would play if it were their move. */
-    val threatArrows: Boolean = false,
+    val threatArrows: Boolean = true,
     /** On the Analyze tab: each move gets a mark (Best, Mistake…) once the engine has looked at it. */
-    val moveFeedback: Boolean = false,
+    val moveFeedback: Boolean = true,
     val sound: Boolean = true,
     val chesscomUser: String = "",
     val lichessUser: String = "",
@@ -58,10 +62,12 @@ class SettingsStore(context: Context) {
     private fun read(): AppSettings {
         val d = AppSettings()
         return AppSettings(
+            accent = prefs.enum("accent", d.accent),
             boardTheme = prefs.enum("boardTheme", d.boardTheme),
             coordinates = prefs.getBoolean("coordinates", d.coordinates),
             highlightLastMove = prefs.getBoolean("highlightLastMove", d.highlightLastMove),
             showLegalMoves = prefs.getBoolean("showLegalMoves", d.showLegalMoves),
+            showMaterial = prefs.getBoolean("showMaterial", d.showMaterial),
             showArrows = prefs.getBoolean("showArrows", d.showArrows),
             analysisEngine = prefs.getBoolean("analysisEngine", d.analysisEngine),
             showEvalBar = prefs.getBoolean("showEvalBar", d.showEvalBar),
@@ -78,10 +84,12 @@ class SettingsStore(context: Context) {
 
     private fun write(s: AppSettings) {
         prefs.edit()
+            .putString("accent", s.accent.name)
             .putString("boardTheme", s.boardTheme.name)
             .putBoolean("coordinates", s.coordinates)
             .putBoolean("highlightLastMove", s.highlightLastMove)
             .putBoolean("showLegalMoves", s.showLegalMoves)
+            .putBoolean("showMaterial", s.showMaterial)
             .putBoolean("showArrows", s.showArrows)
             .putBoolean("analysisEngine", s.analysisEngine)
             .putBoolean("showEvalBar", s.showEvalBar)

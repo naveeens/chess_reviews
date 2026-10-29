@@ -14,6 +14,7 @@ import wrklabs.chess.db.PuzzleRepository
 import wrklabs.chess.db.PuzzleSummary
 import wrklabs.chess.model.ChessBoard
 import wrklabs.chess.model.Move
+import wrklabs.chess.model.PieceType
 import wrklabs.chess.model.Square
 import wrklabs.chess.sound.SoundPlayer
 
@@ -38,6 +39,8 @@ sealed class PuzzleState {
         /** "Show why": the opponent's best reply to your move is being played (or was), and what it came to. */
         val whyStarted: Boolean = false,
         val whyText: String? = null,
+        /** A pawn is on its way to the last rank and the piece to promote to is being asked. */
+        val promotion: Pair<Square, Square>? = null,
     ) : PuzzleState() {
         /** The move the puzzle wants next. */
         val expected: String get() = card.puzzle.moves[step]
@@ -116,9 +119,24 @@ class PuzzleViewModel(
         val q = _state.value as? PuzzleState.Question ?: return
         if (q.status != PuzzleStatus.Playing || q.replying) return
         val candidates = q.board.legalMoves().filter { it.from == from && it.to == to }
-        // An underpromotion is a different move: the one the puzzle wants wins if it is among them.
-        val move = candidates.find { it.uci == q.expected } ?: candidates.firstOrNull() ?: return
+        if (promotionMoves(q.board, from, to).isNotEmpty()) {
+            _state.value = q.copy(selectedSquare = null, promotion = from to to)
+            return
+        }
+        val move = candidates.firstOrNull() ?: return
         play(q, move)
+    }
+
+    fun choosePromotion(type: PieceType) {
+        val q = _state.value as? PuzzleState.Question ?: return
+        val (from, to) = q.promotion ?: return
+        val move = promotionMoves(q.board, from, to).find { it.promotion == type } ?: return
+        play(q.copy(promotion = null), move)
+    }
+
+    fun cancelPromotion() {
+        val q = _state.value as? PuzzleState.Question ?: return
+        _state.value = q.copy(promotion = null)
     }
 
     private fun play(q: PuzzleState.Question, move: Move) {
@@ -184,17 +202,14 @@ class PuzzleViewModel(
             val line = result?.lines?.firstOrNull()
             if (line == null) { update { it.copy(whyText = "The engine had nothing to add here.") }; return@launch }
             var board = after
-            var last: Move? = null
             for ((i, move) in WhyLine.plan(startFen, line.pv).withIndex()) {
                 delay(if (i == 0) 500 else 900)
                 if ((_state.value as? PuzzleState.Question)?.whyStarted != true) return@launch
                 board = board.makeMove(move)
-                last = move
                 SoundPlayer.playMove()
                 val b = board
                 update { it.copy(board = b, lastMove = move.from to move.to) }
             }
-            update { it.copy(whyText = WhyLine.text(startFen, board.toFen(), last?.san, mover, "Your opponent", line.score)) }
         }
     }
 

@@ -21,15 +21,15 @@ class ProAccess(context: Context) {
     }
 }
 
-/** Free accounts review a few games a week; reviews already made, and a game reviewed again, cost nothing. */
+/** Free accounts review a number of games a day; reviews already made, and a game reviewed again, cost nothing. */
 object ReviewQuota {
-    const val FREE_PER_WEEK = 5
-    const val WEEK_MS = 7L * 24 * 60 * 60 * 1000
+    const val FREE_PER_DAY = 20
+    const val DAY_MS = 24L * 60 * 60 * 1000
 
-    /** [times] are when this week's reviews were made. */
-    fun allowed(pro: Boolean, times: List<Long>): Boolean = pro || times.size < FREE_PER_WEEK
+    /** [times] are when the last day's reviews were made. */
+    fun allowed(pro: Boolean, times: List<Long>): Boolean = pro || times.size < FREE_PER_DAY
 
-    /** When the oldest review of the week drops out and a free one comes back; null while one is free. */
+    /** When the oldest review of the day drops out and a free one comes back; null while one is free. */
     fun nextFreeAt(times: List<Long>): Long? =
-        if (times.size < FREE_PER_WEEK) null else times.sorted()[times.size - FREE_PER_WEEK] + WEEK_MS
+        if (times.size < FREE_PER_DAY) null else times.sorted()[times.size - FREE_PER_DAY] + DAY_MS
 }

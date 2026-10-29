@@ -47,6 +47,8 @@ data class ReviewUiState(
     val gameIds: Set<String> = setOf(ROOT_ID),
     val currentNodeId: String = ROOT_ID,
     val selectedSquare: Square? = null,
+    /** A pawn is on its way to the last rank and the piece to promote to is being asked. */
+    val promotion: Pair<Square, Square>? = null,
     val orientation: PieceColor = PieceColor.WHITE,
     val report: GameReport? = null,
     val points: List<EvalPoint> = emptyList(),
@@ -54,7 +56,7 @@ data class ReviewUiState(
     val progress: Float = 0f,
     val reviewStart: Long = 0,
     val message: String? = null,
-    /** Set when the free weekly reviews are used up: when the next one comes back, in ms. */
+    /** Set when the free daily reviews are used up: when the next one comes back, in ms. */
     val limitUntil: Long? = null,
     /** False: the summary screen; true: the board. A game opens on its summary. */
     val showBoard: Boolean = false,
@@ -93,12 +95,13 @@ data class ReviewUiState(
     /** On a line of your own, off the game: Resume goes back. */
     val onBranch: Boolean get() = currentNodeId !in gameIds && !showingBest
 
-    /** Resume has somewhere to go: a variation of yours, or the line "Show why" is playing. */
-    val canResume: Boolean get() = onBranch || whyFrom != null
+    /** Resume has somewhere to go: a variation of yours, the line "Show why" is playing, or the engine's best line. */
+    val canResume: Boolean get() = onBranch || whyFrom != null || showingBest
 
     /** Where Resume goes: the game position the line being looked at began from. */
     val resumeTo: String?
         get() {
+            if (showingBest) bestOf?.takeIf { it in gameIds }?.let { return it }
             whyFrom?.takeIf { it in gameIds }?.let { return it }
             var n: MoveNode? = whyFrom?.let { tree.nodes[it] } ?: currentNode
             while (n != null && n.id !in gameIds) n = n.parentId?.let { tree.nodes[it] }
@@ -273,9 +276,9 @@ class ReviewViewModel(application: Application) : AndroidViewModel(application) 
         liveJob?.cancel()
         replyJob?.cancel()
         reviewJob = viewModelScope.launch {
-            // Free accounts have a few reviews a week; a game already reviewed can always be done again.
+            // Free accounts have a number of reviews a day; a game already reviewed can always be done again.
             val now = System.currentTimeMillis()
-            val times = Graph.games.reviewTimesSince(now - ReviewQuota.WEEK_MS)
+            val times = Graph.games.reviewTimesSince(now - ReviewQuota.DAY_MS)
             if (!ReviewQuota.allowed(Graph.pro.owned.value, times) && !Graph.games.hasGame(info.key)) {
                 _state.update { it.copy(limitUntil = ReviewQuota.nextFreeAt(times)) }
                 return@launch
@@ -407,7 +410,7 @@ class ReviewViewModel(application: Application) : AndroidViewModel(application) 
      * (`switchTab = false` for scrubbing the graph, which has to stay under the finger). Your own variations stay;
      * the moves the engine added are taken away once you leave them. The engine's pending reply is cancelled unless it is the reply being played.
      */
-    private fun goTo(nodeId: String, quiet: Boolean = false, tree: GameTree = _state.value.tree, fromReply: Boolean = false, keepWhy: Boolean = false) {
+    private fun goTo(nodeId: String, quiet: Boolean = false, tree: GameTree = _state.value.tree, fromReply: Boolean = false, keepWhy: Boolean = false, keepBest: Boolean = false) {
         val ids = _state.value.gameIds
         val t = withoutEngine(tree, _state.value.engineIds, nodeId)
         val node = t.nodes[nodeId] ?: return
@@ -418,7 +421,7 @@ class ReviewViewModel(application: Application) : AndroidViewModel(application) 
             it.copy(
                 tree = t, currentNodeId = nodeId, selectedSquare = null, lines = if (prev == nodeId) it.lines else emptyList(),
                 engineIds = it.engineIds.filter { id -> id in t.nodes }.toSet(),
-                bestNodeId = if (nodeId == it.bestNodeId) it.bestNodeId else null,
+                bestNodeId = if (keepBest || nodeId == it.bestNodeId) nodeId else null,
                 whyFrom = if (keepWhy || nodeId in it.engineIds) it.whyFrom else null,
                 whyText = if (keepWhy || nodeId in it.engineIds) it.whyText else null,
                 staleScore = if (nodeId in ids) null else (it.lines.firstOrNull()?.score ?: it.score ?: it.staleScore),
@@ -478,7 +481,7 @@ class ReviewViewModel(application: Application) : AndroidViewModel(application) 
         val played = s.playedNode
         val parent = played.parentId ?: return
         // The move you played, or the one already on show: back to it.
-        if (uci == played.uci || (s.showingBest && s.currentNode.uci == uci)) {
+        if (uci == played.uci || s.showingBest) {
             goTo(played.id)
             return
         }
@@ -487,6 +490,30 @@ class ReviewViewModel(application: Application) : AndroidViewModel(application) 
         _state.update { it.copy(bestNodeId = id, bestOf = played.id, engineIds = if (added) it.engineIds + id else it.engineIds) }
         goTo(id, tree = tree)
         gradeCandidate(s, tree, parent, id, uci)
+        playOn(s, played, parent, id, uci)
+    }
+
+    /** The rest of the engine's line for the move on show, as far as "Show why" would play it, one move at a time. */
+    private fun playOn(s: ReviewUiState, played: MoveNode, parent: String, first: String, uci: String) {
+        val cand = s.candidates.firstOrNull { it.uci == uci } ?: return
+        val fen = s.tree.nodes[parent]?.fen ?: return
+        if (cand.pv.firstOrNull() != uci) return
+        val mover = if (played.ply % 2 == 1) PieceColor.WHITE else PieceColor.BLACK
+        val mating = (cand.score as? Score.Mate)?.let { it.value != 0 && ((mover == PieceColor.WHITE) == (it.value > 0)) } == true
+        val plan = WhyLine.plan(fen, cand.pv, mating).map { it.uci }.drop(1)
+        whyJob?.cancel()
+        whyJob = viewModelScope.launch {
+            var last = first
+            for (move in plan) {
+                delay(900)
+                val st = _state.value
+                if (st.bestNodeId != last || st.currentNodeId != last) return@launch   // you moved on
+                val (t, n) = st.tree.addMove(last, move) ?: break
+                if (n !in st.tree.nodes) _state.update { it.copy(engineIds = it.engineIds + n) }
+                goTo(n, tree = t, keepBest = true)
+                last = n
+            }
+        }
     }
 
     /** An engine move is graded against the engine's own best for that position. */
@@ -508,28 +535,20 @@ class ReviewViewModel(application: Application) : AndroidViewModel(application) 
     /**
      * Plays the opponent's best reply to the move on the card, one move at a time, as far as it explains itself: through
      * the whole run of captures once one starts (a fork's check and forced reply come first), a checkmate, or the limit.
-     * Then says what it came to.
      */
     fun showWhy() {
         val s = _state.value
         if (s.reviewing || s.thinking) return
         val played = (s.whyFrom ?: s.playedNode.id).let { s.tree.nodes[it] } ?: return
-        // For a Miss the point is what you could have done, so the line starts before your move; otherwise it follows it.
-        val missed = (s.report?.moves?.get(played.id) ?: s.grades[played.id])?.cls == MoveClass.MISS
-        val start = (if (missed) played.parentId?.let { s.tree.nodes[it] } else played) ?: return
+        val start = played
         whyJob?.cancel()
         liveJob?.cancel()
         replyJob?.cancel()
         goTo(start.id)
         _state.update { it.copy(whyFrom = played.id, whyText = null) }
         val fen = start.fen
-        val mover = if (played.ply % 2 == 1) PieceColor.WHITE else PieceColor.BLACK
-        val info = s.info
-        val cfg = settings.value
         whyJob = viewModelScope.launch {
-            val cached = if (missed) candidateCache[start.id]?.firstOrNull()?.takeIf { it.pv.isNotEmpty() } else null
-            val line = cached?.let { EngineLine(1, 0, it.score, null, it.pv) }
-                ?: engine.analyze(AnalyzeRequest(fen = fen, multiPv = 1, depth = 14, movetime = WHY_MS))?.lines?.firstOrNull()
+            val line = engine.analyze(AnalyzeRequest(fen = fen, multiPv = 1, depth = 14, movetime = WHY_MS))?.lines?.firstOrNull()
             if (line == null) {
                 _state.update { if (it.whyFrom == played.id) it.copy(whyText = "The engine had nothing to add here.") else it }
                 return@launch
@@ -537,8 +556,7 @@ class ReviewViewModel(application: Application) : AndroidViewModel(application) 
             _state.update { if (it.whyFrom == played.id) it.copy(staleScore = line.score) else it }
 
             // Which of the engine's moves to play.
-            val mating = missed && (line.score as? Score.Mate)?.let { it.value != 0 && ((mover == PieceColor.WHITE) == (it.value > 0)) } == true
-            val plan = WhyLine.plan(fen, line.pv, mating).map { it.uci }
+            val plan = WhyLine.plan(fen, line.pv).map { it.uci }
 
             for ((i, uci) in plan.withIndex()) {
                 delay(if (i == 0) 500 else 900)
@@ -550,11 +568,6 @@ class ReviewViewModel(application: Application) : AndroidViewModel(application) 
                 goTo(n, tree = t, keepWhy = true)
             }
 
-            val st = _state.value
-            if (st.whyFrom != played.id) return@launch
-            val opponent = if (mover == PieceColor.WHITE) (info?.black ?: "Black") else (info?.white ?: "White")
-            val text = WhyLine.text(fen, st.currentNode.fen, st.currentNode.san, mover, opponent, line.score, missed, mating)
-            _state.update { if (it.whyFrom == played.id) it.copy(whyText = text) else it }
         }
     }
 
@@ -572,7 +585,7 @@ class ReviewViewModel(application: Application) : AndroidViewModel(application) 
             else -> {
                 val move = board.legalMoves().find { it.from == from && it.to == sq }
                 when {
-                    move != null -> play(from, sq, move.promotion)
+                    move != null -> tryPlay(from, sq, move.promotion)
                     own != null -> _state.update { it.copy(selectedSquare = sq) }
                     else -> _state.update { it.copy(selectedSquare = null) }
                 }
@@ -580,9 +593,24 @@ class ReviewViewModel(application: Application) : AndroidViewModel(application) 
         }
     }
 
+    /** A move of yours: a promotion first asks which piece. */
+    private fun tryPlay(from: Square, to: Square, promotion: PieceType?) {
+        if (promotionMoves(_state.value.board, from, to).isNotEmpty()) {
+            _state.update { it.copy(selectedSquare = null, promotion = from to to) }
+        } else play(from, to, promotion)
+    }
+
+    fun choosePromotion(type: PieceType) {
+        val (from, to) = _state.value.promotion ?: return
+        _state.update { it.copy(promotion = null) }
+        play(from, to, type)
+    }
+
+    fun cancelPromotion() = _state.update { it.copy(promotion = null) }
+
     fun onDrag(from: Square, to: Square) {
         val move = _state.value.board.legalMoves().find { it.from == from && it.to == to }
-        if (move != null) play(from, to, move.promotion) else _state.update { it.copy(selectedSquare = null) }
+        if (move != null) tryPlay(from, to, move.promotion) else _state.update { it.copy(selectedSquare = null) }
     }
 
     /** A move of yours. The game's own next move steps forward; anything else starts (or extends) a variation. */

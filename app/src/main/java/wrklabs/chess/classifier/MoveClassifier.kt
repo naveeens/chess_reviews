@@ -1,7 +1,10 @@
 /*
- * Derived from Rookahead's src/lib/classify.ts (https://github.com/rookahead/rookahead), by bijoyv9 and
- * contributors, GPL-3.0-or-later. Ported from TypeScript to Kotlin and changed for this app: the verdict
- * names, the board model and the Android types. See NOTICE.
+ * Copyright (C) bijoyv9 and contributors (Rookahead, https://github.com/rookahead/rookahead)
+ * Copyright (C) 2026 naveen s
+ *
+ * Derived from Rookahead's src/lib/classify.ts, ported from TypeScript to Kotlin and changed for this
+ * app: the verdict names, the board model and the Android types.
+ * SPDX-License-Identifier: GPL-3.0-or-later. See NOTICE.
  */
 package wrklabs.chess.classifier
 
@@ -44,9 +47,7 @@ data class GameReport(
 
 object MoveClassifier {
 
-    const val RULES_VERSION = 10
-    /** Win% from which a position counts as won (about +7 pawns). */
-    const val WINNING = 93.0
+    const val RULES_VERSION = 13
     /** A mate this near is one you are expected to find. */
     const val SHORT_MATE = 3
     /** A Miss gave back between this much and this much of what the opponent's mistake handed you. */
@@ -54,6 +55,10 @@ object MoveClassifier {
     const val MISS_GAVE_BACK_MAX = 1.25
     const val HOLDS = 45.0
     const val HOLDING = 30.0
+    /** Win% from which a position is won however it is played (about +9 pawns): a sacrifice there is not brilliant. */
+    const val CRUSHING = 97.0
+    /** A sacrifice may fall this far short of the best move (expected points) and still be brilliant: the engine's pick can be a near-equal one. */
+    const val SACRIFICE_SLACK = 0.035
 
     object LossBands {
         const val EXCELLENT = 0.02
@@ -308,29 +313,28 @@ object MoveClassifier {
         }
     }
 
-    /** 2. A move worth a mark for being found: Brilliant (a sound sacrifice) or Great (the only move that holds), else null. */
-    private fun standout(f: MoveFacts, base: MoveClass): MoveClass? {
+    /**
+     * 2. A move worth a mark for being found.
+     * Brilliant: the best move, or within [SACRIFICE_SLACK] of it, that gives up material and still holds, unless the position was
+     * already crushing (a sacrifice the opponent has to decline counts even then).
+     * Great: the only move that keeps you in the game, or the best move that punishes the opponent's blunder.
+     */
+    private fun standout(f: MoveFacts, base: MoveClass, previous: MoveReview?): MoveClass? {
         var onlyGood = false
-        var onlyMate = false
-        var fastestMate = false
+        var punishes = false
         if (f.playedBest && f.before.second != null && f.legalMoves > 1) {
             val secondWin = moverWin(f.before.second, f.color)
-            onlyGood = f.winAfter >= HOLDING && (f.winBefore - secondWin) / 100.0 >= LossBands.INACCURACY && secondWin < 85.0
-            val mate = mateIn(f.before.score, f.color)
-            val secondMate = mateIn(f.before.second, f.color)
-            onlyMate = mate != null && mate >= 2 && (secondMate == null || secondMate >= mate + 3)
-            fastestMate = mate != null && mate >= 2 && (secondMate == null || secondMate >= mate + 2)
+            val gap = (f.winBefore - secondWin) / 100.0
+            onlyGood = f.winAfter >= HOLDING && gap >= LossBands.INACCURACY && secondWin < 85.0
+            punishes = previous?.cls == MoveClass.BLUNDER && gap >= LossBands.INACCURACY
         }
 
         val gradable = base == MoveClass.BEST || base == MoveClass.EXCELLENT || base == MoveClass.GOOD
         val olderFen = if (f.index >= 2) f.line[f.index - 2].fen else null
         val sac = if (gradable) sacrificeDetail(f.parent.fen, f.node.fen, f.after.pv, f.color, onlyGood, olderFen) else null
 
-        // Already winning without it, even if this move had not been found: nothing brilliant about it.
-        val alreadyWinning = (f.before.second?.let { moverWin(it, f.color) } ?: f.winBefore) >= WINNING
-        val soundSac = sac != null && f.playedBest && f.winAfter >= HOLDS && !alreadyWinning && (sac.kind != SacrificeKind.EXCHANGE || onlyGood)
-        if (soundSac || (sac != null && fastestMate)) return MoveClass.BRILLIANT
-        if ((onlyGood || onlyMate) && !f.mates && !takesBack(f.line.getOrNull(f.index - 2), f.parent, f.node, f.color) && isCritical(f.parent, f.node, f.color)) return MoveClass.GREAT
+        if (sac != null && (f.playedBest || f.loss < SACRIFICE_SLACK) && f.winAfter >= HOLDS && (f.winBefore < CRUSHING || sac.declined)) return MoveClass.BRILLIANT
+        if ((onlyGood || punishes) && !f.mates && !takesBack(f.line.getOrNull(f.index - 2), f.parent, f.node, f.color) && isCritical(f.parent, f.node, f.color)) return MoveClass.GREAT
         return null
     }
 
@@ -374,7 +378,7 @@ object MoveClassifier {
             } else {
                 stillInBook = false
                 val graded = gradeByLoss(f)
-                val marked = standout(f, graded) ?: graded
+                val marked = standout(f, graded, moves[f.parent.id]) ?: graded
                 if (isMiss(marked, f.loss, moves[f.parent.id])) MoveClass.MISS else marked
             }
 

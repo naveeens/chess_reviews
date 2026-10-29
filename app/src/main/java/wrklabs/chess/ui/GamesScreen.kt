@@ -41,7 +41,7 @@ fun GamesScreen(vm: GamesViewModel, settings: AppSettings, onOpen: (GameItem) ->
                 EmptyState(
                     "Bring in your games",
                     "Add your Chess.com or Lichess username and your recent games show up here, ready to review.",
-                    action = { RButton("Add username", onOpenSettings, icon = Icons.Default.Settings) },
+                    action = { RButton("Add username", onOpenSettings, style = ButtonStyle.OnCard, icon = Icons.Default.Settings) },
                 )
             }
             state.items.isEmpty() -> Column(Modifier.padding(horizontal = 14.dp, vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -53,8 +53,8 @@ fun GamesScreen(vm: GamesViewModel, settings: AppSettings, onOpen: (GameItem) ->
                         if (state.error != null) "Check the username in Settings, or try again." else "Nothing came back for that username yet. Play a game or check the spelling.",
                         action = {
                             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                RButton("Try again", vm::refresh, icon = Icons.Default.Download)
-                                RButton("Settings", onOpenSettings, style = ButtonStyle.Tonal)
+                                RButton("Try again", vm::refresh, style = ButtonStyle.OnCard, icon = Icons.Default.Download)
+                                RButton("Settings", onOpenSettings, style = ButtonStyle.OnCardSoft)
                             }
                         },
                     )

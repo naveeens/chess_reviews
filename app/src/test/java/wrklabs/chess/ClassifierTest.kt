@@ -108,7 +108,7 @@ class ClassifierTest {
     }
 
     @Test
-    fun aSacrificeWhenAlreadyWinningWithoutItIsNotBrilliant() {
+    fun aSacrificeIsNotBrilliantWhenTheGameIsAlreadyCrushing() {
         val before = pos(Score.Centipawns(1000), "d1d4", Score.Centipawns(900))
         val after = ReviewedPosition(Score.Centipawns(1000), null, listOf("e5d4"))
         assertEquals(MoveClass.BEST, grade(rookSac, "d1d4", before, after))
@@ -116,8 +116,32 @@ class ClassifierTest {
 
     @Test
     fun aSacrificeThatIsNotTheBestMoveIsNotBrilliant() {
+        // Gives up about nine points of win chance against the engine's move: far outside the slack.
         val before = pos(Score.Centipawns(100), "d1d5", Score.Centipawns(0))
-        val after = ReviewedPosition(Score.Centipawns(95), null, listOf("e5d4"))
+        val after = ReviewedPosition(Score.Centipawns(-50), null, listOf("e5d4"))
         assertEquals(true, grade(rookSac, "d1d4", before, after) != MoveClass.BRILLIANT)
+    }
+
+    @Test
+    fun aSacrificeJustShortOfTheBestMoveIsStillBrilliant() {
+        // The engine's pick was another move; this one gives up about a point of win chance, well inside the slack.
+        val before = pos(Score.Centipawns(100), "d1d5", Score.Centipawns(0))
+        val after = ReviewedPosition(Score.Centipawns(90), null, listOf("e5d4"))
+        assertEquals(MoveClass.BRILLIANT, grade(rookSac, "d1d4", before, after))
+    }
+
+    @Test
+    fun theBestMovePunishingABlunderIsGreat() {
+        // White blunders to -300; Black's best reply is far better than the alternative.
+        val quiet = "6k1/8/8/8/8/8/8/4K2R w - - 0 1"
+        val (t1, id1) = GameTree.create(quiet).addMove(ROOT_ID, "e1f1")!!
+        val (t2, id2) = t1.addMove(id1, "g8f7")!!
+        val line = listOf(t2.nodes.getValue(ROOT_ID), t2.nodes.getValue(id1), t2.nodes.getValue(id2))
+        val evals = mapOf(
+            line[0].fen to pos(Score.Centipawns(0), "h1h2"),
+            line[1].fen to pos(Score.Centipawns(-300), "g8f7", Score.Centipawns(-100)),
+            line[2].fen to pos(Score.Centipawns(-300)),
+        )
+        assertEquals(MoveClass.GREAT, MoveClassifier.classifyGame(line, evals).moves.getValue(id2).cls)
     }
 }

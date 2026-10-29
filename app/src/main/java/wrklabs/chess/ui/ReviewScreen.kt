@@ -165,9 +165,9 @@ private fun SummaryScreen(s: ReviewUiState, vm: ReviewViewModel, onBack: () -> U
                 }
                 s.limitUntil != null -> RCard {
                     Text("Free reviews used", style = MaterialTheme.typography.titleMedium, color = c.text)
-                    val back = java.text.DateFormat.getDateInstance(java.text.DateFormat.MEDIUM).format(java.util.Date(s.limitUntil))
+                    val back = java.text.DateFormat.getDateTimeInstance(java.text.DateFormat.MEDIUM, java.text.DateFormat.SHORT).format(java.util.Date(s.limitUntil))
                     Text(
-                        "Free accounts review ${wrklabs.chess.billing.ReviewQuota.FREE_PER_WEEK} games a week. The next one comes back $back. Games you have reviewed stay open, and Pro removes the limit.",
+                        "Free accounts review ${wrklabs.chess.billing.ReviewQuota.FREE_PER_DAY} games a day. The next one comes back $back. Games you have reviewed stay open, and Pro removes the limit.",
                         style = MaterialTheme.typography.bodySmall, color = c.muted, modifier = Modifier.padding(top = 4.dp, bottom = 12.dp),
                     )
                     ProUnlock()
@@ -222,7 +222,7 @@ private fun BoardScreen(s: ReviewUiState, vm: ReviewViewModel, settings: AppSett
                 }
             }
 
-            PlayerBar(name(topColor), rating(topColor), topColor, accuracy(topColor), score = scoreOf(topColor, result))
+            PlayerBar(name(topColor), rating(topColor), topColor, accuracy(topColor), score = scoreOf(topColor, result), material = if (settings.showMaterial) materialDiff(board, topColor) else null)
             ChessboardView(
                 modifier = Modifier.size(boardSize),
                 board = board,
@@ -245,8 +245,9 @@ private fun BoardScreen(s: ReviewUiState, vm: ReviewViewModel, settings: AppSett
                 onSquareClick = vm::onSquareClick,
                 onMove = vm::onDrag,
             )
+            s.promotion?.let { PromotionPicker(board.turn, vm::choosePromotion, vm::cancelPromotion) }
             EvalStrip(s.score, s.orientation)
-            PlayerBar(name(bottomColor), rating(bottomColor), bottomColor, accuracy(bottomColor), score = scoreOf(bottomColor, result))
+            PlayerBar(name(bottomColor), rating(bottomColor), bottomColor, accuracy(bottomColor), score = scoreOf(bottomColor, result), material = if (settings.showMaterial) materialDiff(board, bottomColor) else null)
 
             Column(Modifier.weight(1f).fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Box(Modifier.padding(horizontal = 14.dp).padding(top = 4.dp)) { MoveCard(s, vm) }
@@ -351,9 +352,9 @@ private fun MoveCard(s: ReviewUiState, vm: ReviewViewModel) {
     // Theory and forced moves have nothing to be improved on.
     val noAlternative = r?.cls == MoveClass.BOOK || r?.cls == MoveClass.FORCED
     val sug = s.suggestion.takeIf { !noAlternative }
-    // The only words under the title are the ones that are news: what "Show why" found, or that the engine is still at work.
+    // The only words under the title are the ones that are news: that the engine had nothing to add, or is still at work.
     val note: String? = when {
-        s.whyFrom != null -> s.whyText ?: "Following the opponent's best reply…"
+        s.whyFrom != null -> s.whyText
         r == null && s.onBranch -> if (s.thinking) "The engine is replying…" else "The engine is looking at it…"
         else -> null
     }
@@ -363,9 +364,9 @@ private fun MoveCard(s: ReviewUiState, vm: ReviewViewModel) {
         cls = r?.takeIf { !atStart }?.cls,
         lostPercent = r?.takeIf { it.cls != MoveClass.BOOK && it.cls != MoveClass.FORCED && it.loss >= 0.01 }?.let { (it.loss * 100).toInt() },
         note = note,
-        best = sug?.let { BestChoice(it.label, it.candidate.san, evalLabel(it.candidate.score), on = s.showingBest && s.currentNode.uci == it.candidate.uci) },
+        best = sug?.let { BestChoice(it.label, it.candidate.san, evalLabel(it.candidate.score), on = s.showingBest) },
         bestPending = sug == null && s.candidatesPending && !atStart && !noAlternative && r?.bestMove != null,
-        whyLabel = if (r != null && r.cls in setOf(MoveClass.MISTAKE, MoveClass.MISS, MoveClass.BLUNDER)) (if (r.cls == MoveClass.MISS) "What you missed" else "Show why") else null,
+        whyLabel = if (r != null && r.cls in setOf(MoveClass.MISTAKE, MoveClass.MISS, MoveClass.BLUNDER)) "Show why" else null,
         whyActive = s.whyFrom != null,
         onBest = { sug?.let { vm.showCandidate(it.candidate.uci) } },
         onWhy = vm::showWhy,

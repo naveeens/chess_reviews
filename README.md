@@ -10,7 +10,7 @@ An Android chess app (Kotlin, Jetpack Compose): games from Chess.com and Lichess
 
 ## Credits
 
-Chess Reviews is a derivative of [Rookahead](https://github.com/rookahead/rookahead) by bijoyv9 and contributors (GPL-3.0-or-later). The move-grading code (`classifier/`) is ported from Rookahead's `src/lib/classify.ts` from TypeScript to Kotlin, and the colours, fonts and visual design follow its web app. Changes include the Android UI, on-device Stockfish, local storage, Play Billing and the review limit. See [`NOTICE`](NOTICE).
+Chess Reviews is a derivative of [Rookahead](https://github.com/rookahead/rookahead) by bijoyv9 and contributors (GPL-3.0-or-later). The move-grading code (`classifier/`) is ported from Rookahead's `src/lib/classify.ts` from TypeScript to Kotlin, the Train puzzles made from your own mistakes follow Rookahead's `src/lib/mistakes.ts`. Changes include the Android UI, on-device Stockfish, local storage, Play Billing and the review limit. See [`NOTICE`](NOTICE).
 
 ## Licence
 

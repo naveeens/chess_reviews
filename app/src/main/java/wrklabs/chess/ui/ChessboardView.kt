@@ -12,6 +12,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.translate
@@ -166,10 +167,6 @@ fun ChessboardView(
                 else drawCircle(Color(0x59000000), sq * 0.43f, center(m.to), style = Stroke(sq * 0.09f))
             }
 
-            for (arrow in arrows) {
-                drawArrow(center(arrow.from), center(arrow.to), (arrow.color ?: colors.arrow).copy(alpha = if (arrow.faint) 0.5f else 0.9f), sq, if (arrow.faint) 0.15f else 0.2f)
-            }
-
             val lifted = dragFrom
             for (i in 0 until 64) {
                 val s = Square.fromIndex(i)
@@ -180,6 +177,11 @@ fun ChessboardView(
                 translate(topLeft(s).x + inset, topLeft(s).y + inset) {
                     with(painter) { draw(Size(sq - inset * 2, sq - inset * 2)) }
                 }
+            }
+
+            // Over the pieces, but see-through, so what is under the shaft still reads.
+            for (arrow in arrows) {
+                drawArrow(center(arrow.from), center(arrow.to), (arrow.color ?: colors.arrow).copy(alpha = if (arrow.faint) 0.45f else 0.78f), sq, if (arrow.faint) 0.11f else 0.15f)
             }
 
             if (coordinates) drawCoordinates(measurer, sq, white, colors)
@@ -250,17 +252,26 @@ private fun DrawScope.drawArrow(start: Offset, end: Offset, color: Color, sq: Fl
     if (length < 1f) return
     val ux = dx / length
     val uy = dy / length
-    val head = sq * 0.42f
-    val shaftEnd = Offset(end.x - ux * head * 0.8f, end.y - uy * head * 0.8f)
-    val from = Offset(start.x + ux * sq * 0.1f, start.y + uy * sq * 0.1f)
-    drawLine(color, from, shaftEnd, strokeWidth = sq * width, cap = androidx.compose.ui.graphics.StrokeCap.Round)
+    val head = sq * 0.38f
+    // The tail and the tip stop short of the square centres, so the piece on either end stays recognisable.
+    val tip = Offset(end.x - ux * sq * 0.16f, end.y - uy * sq * 0.16f)
+    val shaftEnd = Offset(tip.x - ux * head * 0.8f, tip.y - uy * head * 0.8f)
+    val from = Offset(start.x + ux * sq * 0.2f, start.y + uy * sq * 0.2f)
+    if ((shaftEnd.x - from.x) * ux + (shaftEnd.y - from.y) * uy < 0f) return
     val px = -uy
     val py = ux
     val path = Path().apply {
-        moveTo(end.x, end.y)
-        lineTo(end.x - ux * head + px * head * 0.5f, end.y - uy * head + py * head * 0.5f)
-        lineTo(end.x - ux * head - px * head * 0.5f, end.y - uy * head - py * head * 0.5f)
+        moveTo(tip.x, tip.y)
+        lineTo(tip.x - ux * head + px * head * 0.5f, tip.y - uy * head + py * head * 0.5f)
+        lineTo(tip.x - ux * head - px * head * 0.5f, tip.y - uy * head - py * head * 0.5f)
         close()
     }
-    drawPath(path, color)
+    // Drawn solid into a layer that is then faded as one, so the shaft and the head do not darken where they meet.
+    val solid = color.copy(alpha = 1f)
+    drawIntoCanvas { canvas ->
+        canvas.saveLayer(androidx.compose.ui.geometry.Rect(0f, 0f, size.width, size.height), androidx.compose.ui.graphics.Paint().apply { alpha = color.alpha })
+        drawLine(solid, from, shaftEnd, strokeWidth = sq * width, cap = androidx.compose.ui.graphics.StrokeCap.Round)
+        drawPath(path, solid)
+        canvas.restore()
+    }
 }

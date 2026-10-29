@@ -166,8 +166,8 @@ class ReviewService(
     }
 
     companion object {
-        /** Bumped when reviews made by earlier versions should be made again. */
-        const val VERSION = 11
+        /** Reviews saved under an older value are made again, so a change to the grading reaches games already reviewed. */
+        const val VERSION = MoveClassifier.RULES_VERSION
 
         /** The SAN of `uci` in the position `fen`, or the UCI text when it isn't legal there. */
         fun sanOf(fen: String, uci: String): String =

@@ -109,7 +109,7 @@ class GameRepository(private val dbHelper: AppDatabaseHelper) {
         db.delete("game", "key = ?", arrayOf(key))
     }
 
-    /** When each review since [since] was made, for the free weekly limit. */
+    /** When each review since [since] was made, for the free daily limit. */
     suspend fun reviewTimesSince(since: Long): List<Long> = withContext(Dispatchers.IO) {
         dbHelper.readableDatabase.rawQuery("SELECT review_at FROM game WHERE review_at >= ? ORDER BY review_at", arrayOf(since.toString())).use { c ->
             buildList { while (c.moveToNext()) add(c.getLong(0)) }

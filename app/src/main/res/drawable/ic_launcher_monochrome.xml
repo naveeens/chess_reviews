@@ -4,15 +4,24 @@
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-    <!-- The same rook in one colour, for themed icons: the band, the slot and the base line are holes in it. -->
+    <!-- The same pieces in one colour, for themed icons. -->
     <group
-        android:scaleX="0.84375"
-        android:scaleY="0.84375"
-        android:translateX="11.8125"
-        android:translateY="14.34375">
+        android:translateY="-3.0">
+        <path
+            android:fillColor="#FF000000"
+            android:pathData="M24.5,52V43H29.5V46.5H32V43H36V46.5H38.5V43H43.5V52z M27.5,55h13v17h-13z M24.5,71h19.0a1.5,1.5 0 0 1 1.5,1.5v3.5a1.5,1.5 0 0 1 -1.5,1.5h-19.0a1.5,1.5 0 0 1 -1.5,-1.5v-3.5a1.5,1.5 0 0 1 1.5,-1.5z M44.5,71h19.0a1.5,1.5 0 0 1 1.5,1.5v3.5a1.5,1.5 0 0 1 -1.5,1.5h-19.0a1.5,1.5 0 0 1 -1.5,-1.5v-3.5a1.5,1.5 0 0 1 1.5,-1.5z M71.4,39a2.6,2.6 0 1 0 5.2,0a2.6,2.6 0 1 0 -5.2,0z  M64.5,71h19.0a1.5,1.5 0 0 1 1.5,1.5v3.5a1.5,1.5 0 0 1 -1.5,1.5h-19.0a1.5,1.5 0 0 1 -1.5,-1.5v-3.5a1.5,1.5 0 0 1 1.5,-1.5z" />
         <path
             android:fillColor="#FF000000"
             android:fillType="evenOdd"
-            android:pathData="M24,14h12v8h8v-8h12v8h8v-8h12v22l-8,6v22l10,8v8H22v-8l10-8V42l-8-6z M30,37.5h40v2.5h-40z M46,52a4,4 0 0,1 8,0v6a4,4 0 0,1 -8,0z M24,72h52v2.5h-52z" />
+            android:pathData=" M74,42C80.5,47 82.5,54 79.5,60C78,63 77.5,66 78.5,72H69.5C70.5,66 70,63 68.5,60C65.5,54 67.5,47 74,42z M71.4,49.6L72.8,48.5L77.9,54.9L76.5,56z" />
+        <group
+            android:scaleX="0.98"
+            android:scaleY="0.98"
+            android:translateX="28.07"
+            android:translateY="33.58">
+            <path
+                android:fillColor="#FF000000"
+                android:pathData="M22 10c10.5 1 16.5 8 16 29H15c0-9 10-6.5 8-21z M24 18c.38 2.91-5.55 7.37-8 9-3 2-2.82 4.34-5 4-1.042-.94 1.41-3.04 0-3-1 0 .19 1.23-1 2-1 0-4.003 1-4-4 0-2 6-12 6-12s1.89-1.9 2-3.5c-.73-.994-.5-2-.5-3 1-1 3 2.5 3 2.5h2s.78-1.992 2.5-3c1 0 1 3 1 3z" />
+        </group>
     </group>
 </vector>

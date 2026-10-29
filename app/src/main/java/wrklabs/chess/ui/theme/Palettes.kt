@@ -29,7 +29,14 @@ private val AccentInk = Color(0xFF0E0E10)
 
 private fun Tones.with(accent: Color) = copy(primary = accent, onPrimary = AccentInk, primaryContainer = accent, onPrimaryContainer = AccentInk)
 
-/** The app's accent colour, used as it is everywhere. */
-val Accent = Color(0xFF41A4D0)
+/** The accents to choose from: muted, mid-tone colours that sit on near-black. Each is used as it is everywhere. */
+enum class AccentChoice(val title: String, val color: Color) {
+    OCHRE("Ochre", Color(0xFFCEAD40)),
+    SAGE("Sage", Color(0xFF6E9C65)),
+    DENIM("Denim", Color(0xFF6A85C2)),
+    VERDIGRIS("Verdigris", Color(0xFF589D9D)),
+    PLUM("Plum", Color(0xFFA07CB5)),
+    TAUPE("Taupe", Color(0xFF9E917F)),
+}
 
-val AppTones: Tones = DarkSurfaces.with(Accent)
+fun tonesFor(accent: AccentChoice): Tones = DarkSurfaces.with(accent.color)

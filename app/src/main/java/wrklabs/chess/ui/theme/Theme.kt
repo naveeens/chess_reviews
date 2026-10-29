@@ -11,8 +11,8 @@ import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.unit.dp
 
-fun appColors(): AppColors {
-    val t = AppTones
+fun appColors(accent: AccentChoice = AccentChoice.DENIM): AppColors {
+    val t = tonesFor(accent)
     val on = t.on
     val muted = t.onVariant.copy(alpha = 0.78f)
     return AppColors(
@@ -30,7 +30,7 @@ fun appColors(): AppColors {
         button = Color.White.copy(alpha = 0.085f),
         win = Color(0xFF7FC35F),
         danger = Color(0xFFEF6B5F),
-        warn = Color(0xFFE0B25B),
+        warn = Color(0xFFE58A4A),
         barLight = Color(0xFFECECEE),
         barDark = t.high,
         dark = true,
@@ -50,9 +50,9 @@ private val AppShapes = Shapes(
 )
 
 @Composable
-fun ChessTheme(content: @Composable () -> Unit) {
-    val rc = remember { appColors() }
-    val t = AppTones
+fun ChessTheme(accent: AccentChoice, content: @Composable () -> Unit) {
+    val rc = remember(accent) { appColors(accent) }
+    val t = remember(accent) { tonesFor(accent) }
     val scheme = remember(rc, t) {
         darkColorScheme().copy(
             primary = t.primary, onPrimary = t.onPrimary,

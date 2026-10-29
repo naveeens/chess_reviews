@@ -1,3 +1,10 @@
+/*
+ * Copyright (C) bijoyv9 and contributors (Rookahead, https://github.com/rookahead/rookahead)
+ * Copyright (C) 2026 naveen s
+ *
+ * Train screen for the mistake puzzles derived from Rookahead's src/lib/mistakes.ts.
+ * SPDX-License-Identifier: GPL-3.0-or-later. See NOTICE.
+ */
 package wrklabs.chess.ui
 
 import androidx.compose.foundation.layout.*
@@ -42,9 +49,9 @@ fun TrainScreen(vm: TrainViewModel, puzzles: PuzzleViewModel, settings: AppSetti
             is TrainState.Loading -> Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) { CircularProgressIndicator(color = c.brand) }
             is TrainState.AllDone -> Box(Modifier.padding(14.dp)) {
                 if (summary.total == 0) {
-                    EmptyState("No mistakes yet", "Review a few of your games and the moves you got wrong turn up here as puzzles.", action = { RButton("Your games", onOpenGames) })
+                    EmptyState("No mistakes yet", "Review a few of your games and the moves you got wrong turn up here as puzzles.", action = { RButton("Your games", onOpenGames, style = ButtonStyle.OnCard) })
                 } else {
-                    EmptyState("All caught up", "You've been through everything that's due. Come back tomorrow.", action = { RButton("Check again", vm::loadSession, style = ButtonStyle.Tonal) })
+                    EmptyState("All caught up", "You've been through everything that's due. Come back tomorrow.", action = { RButton("Check again", vm::loadSession, style = ButtonStyle.OnCardSoft) })
                 }
             }
             is TrainState.Question -> {
@@ -76,8 +83,9 @@ fun TrainScreen(vm: TrainViewModel, puzzles: PuzzleViewModel, settings: AppSetti
                     badge = q.grade?.takeIf { q.status in setOf(CardAnswerStatus.Correct, CardAnswerStatus.Better, CardAnswerStatus.Wrong) && !q.whyStarted }?.let { cls -> q.userPlayedMove?.let { it.to to cls } },
                     highlightLastMove = q.lastMove != null,
                     onSquareClick = vm::onSquareClick,
-                    onMove = { from, to -> q.board.legalMoves().find { it.from == from && it.to == to }?.let(vm::onUserMove) },
+                    onMove = vm::onMove,
                 )
+                q.promotion?.let { PromotionPicker(q.board.turn, vm::choosePromotion, vm::cancelPromotion) }
                 Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     when (q.status) {
                         CardAnswerStatus.Unanswered -> Text("Play your move on the board.", style = MaterialTheme.typography.bodyMedium, color = c.muted)
@@ -109,7 +117,7 @@ fun TrainScreen(vm: TrainViewModel, puzzles: PuzzleViewModel, settings: AppSetti
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Column(Modifier.weight(1f)) {
                                     Text("Best was ${card.bestSan}", style = MaterialTheme.typography.titleMedium, color = c.danger)
-                                    Text(if (q.whyStarted) (q.whyText ?: "Following the opponent's best reply…") else "You'll see it again today.", style = MaterialTheme.typography.bodySmall, color = c.muted)
+                                    (if (q.whyStarted) q.whyText else "You'll see it again today.")?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = c.muted) }
                                 }
                             }
                             Spacer(Modifier.height(10.dp))
@@ -146,7 +154,7 @@ private fun ColumnScope.PuzzleSection(vm: PuzzleViewModel, settings: AppSettings
     when (val q = state) {
         is PuzzleState.Loading -> Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) { CircularProgressIndicator(color = c.brand) }
         is PuzzleState.AllDone -> Box(Modifier.padding(14.dp)) {
-            EmptyState("Done for today", "${wrklabs.chess.db.PuzzleRepository.NEW_PER_DAY} new puzzles a day, and any that come back. See you tomorrow.", action = { RButton("Check again", vm::loadSession, style = ButtonStyle.Tonal) })
+            EmptyState("Done for today", "${wrklabs.chess.db.PuzzleRepository.NEW_PER_DAY} new puzzles a day, and any that come back. See you tomorrow.", action = { RButton("Check again", vm::loadSession, style = ButtonStyle.OnCardSoft) })
         }
         is PuzzleState.Question -> {
             val puzzle = q.card.puzzle
@@ -178,6 +186,7 @@ private fun ColumnScope.PuzzleSection(vm: PuzzleViewModel, settings: AppSettings
                 onSquareClick = vm::onSquareClick,
                 onMove = vm::onDrag,
             )
+            q.promotion?.let { PromotionPicker(q.board.turn, vm::choosePromotion, vm::cancelPromotion) }
             Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 when (q.status) {
                     PuzzleStatus.Playing -> Text(if (q.replying) "…" else "Play your move on the board.", style = MaterialTheme.typography.bodyMedium, color = c.muted)
@@ -198,7 +207,7 @@ private fun ColumnScope.PuzzleSection(vm: PuzzleViewModel, settings: AppSettings
                     PuzzleStatus.Wrong -> RCard(color = c.danger.copy(alpha = 0.16f)) {
                         Column(Modifier.fillMaxWidth()) {
                             Text("Best was ${q.bestSan ?: q.expected}", style = MaterialTheme.typography.titleMedium, color = c.danger)
-                            Text(if (q.whyStarted) (q.whyText ?: "Following the opponent's best reply…") else "You'll see it again today.", style = MaterialTheme.typography.bodySmall, color = c.muted)
+                            (if (q.whyStarted) q.whyText else "You'll see it again today.")?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = c.muted) }
                         }
                         Spacer(Modifier.height(10.dp))
                         Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {

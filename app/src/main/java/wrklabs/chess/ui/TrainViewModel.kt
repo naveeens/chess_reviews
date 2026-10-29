@@ -1,3 +1,11 @@
+/*
+ * Copyright (C) bijoyv9 and contributors (Rookahead, https://github.com/rookahead/rookahead)
+ * Copyright (C) 2026 naveen s
+ *
+ * Derived from Rookahead's src/lib/mistakes.ts (puzzles made from your own mistakes), ported to
+ * Kotlin and changed for Android.
+ * SPDX-License-Identifier: GPL-3.0-or-later. See NOTICE.
+ */
 package wrklabs.chess.ui
 
 import androidx.lifecycle.ViewModel
@@ -20,6 +28,7 @@ import wrklabs.chess.db.CardSummary
 import wrklabs.chess.db.MistakeCardPuzzle
 import wrklabs.chess.model.ChessBoard
 import wrklabs.chess.model.Move
+import wrklabs.chess.model.PieceType
 import wrklabs.chess.model.Square
 import wrklabs.chess.sound.SoundPlayer
 
@@ -40,7 +49,9 @@ sealed class TrainState {
         /** "Show why": the opponent's best reply is being played (or was), and what it came to. */
         val whyStarted: Boolean = false,
         val whyText: String? = null,
-        val lastMove: Pair<Square, Square>? = null
+        val lastMove: Pair<Square, Square>? = null,
+        /** A pawn is on its way to the last rank and the piece to promote to is being asked. */
+        val promotion: Pair<Square, Square>? = null
     ) : TrainState()
 }
 
@@ -138,7 +149,7 @@ class TrainViewModel(
             } else {
                 val legal = state.board.legalMoves().find { it.from == selected && it.to == sq }
                 if (legal != null) {
-                    onUserMove(legal)
+                    onMove(selected, sq)
                 } else {
                     val p = state.board.getPiece(sq)
                     if (p != null && p.color == state.board.turn) {
@@ -152,6 +163,30 @@ class TrainViewModel(
     }
 
     private var checkJob: Job? = null
+
+    /** A move from the board: a promotion first asks which piece. */
+    fun onMove(from: Square, to: Square) {
+        val state = _trainState.value as? TrainState.Question ?: return
+        if (state.status != CardAnswerStatus.Unanswered) return
+        if (promotionMoves(state.board, from, to).isNotEmpty()) {
+            _trainState.value = state.copy(selectedSquare = null, promotion = from to to)
+            return
+        }
+        state.board.legalMoves().find { it.from == from && it.to == to }?.let { onUserMove(it) }
+    }
+
+    fun choosePromotion(type: PieceType) {
+        val state = _trainState.value as? TrainState.Question ?: return
+        val (from, to) = state.promotion ?: return
+        val move = promotionMoves(state.board, from, to).find { it.promotion == type } ?: return
+        _trainState.value = state.copy(promotion = null)
+        onUserMove(move)
+    }
+
+    fun cancelPromotion() {
+        val state = _trainState.value as? TrainState.Question ?: return
+        _trainState.value = state.copy(promotion = null)
+    }
 
     fun onUserMove(move: Move) {
         val state = _trainState.value as? TrainState.Question ?: return
@@ -245,18 +280,14 @@ class TrainViewModel(
             }
             if (position == null) { update { it.copy(whyText = "The engine had nothing to add here.") }; return@launch }
             var board = state.board
-            var last: Move? = null
             for ((i, move) in WhyLine.plan(startFen, position.pv).withIndex()) {
                 kotlinx.coroutines.delay(if (i == 0) 500 else 900)
                 if ((_trainState.value as? TrainState.Question)?.whyStarted != true) return@launch
                 board = board.makeMove(move)
-                last = move
                 SoundPlayer.playMove()
                 val b = board
                 update { it.copy(board = b, lastMove = move.from to move.to) }
             }
-            val text = WhyLine.text(startFen, board.toFen(), last?.san, mover, state.card.opponent, position.score)
-            update { it.copy(whyText = text) }
         }
     }
 

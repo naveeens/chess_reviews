@@ -21,7 +21,7 @@ private val CREDITS = listOf(
     ),
     Credit(
         "Rookahead", "GNU GPL v3 or later",
-        "This app's move grading and design are ported from Rookahead by bijoyv9 and contributors, with changes for Android: https://github.com/rookahead/rookahead",
+        "This app's move grading and mistake puzzles are ported from Rookahead by bijoyv9 and contributors, with changes for Android: https://github.com/rookahead/rookahead",
     ),
     Credit(
         "Stockfish", "GNU GPL v3",
@@ -44,8 +44,12 @@ private val CREDITS = listOf(
         "From the lichess-org/chess-openings dataset: https://github.com/lichess-org/chess-openings",
     ),
     Credit(
-        "DM Sans, DM Mono and Syne", "SIL Open Font License 1.1",
+        "DM Sans and JetBrains Mono", "SIL Open Font License 1.1",
         "Typefaces bundled in the app.",
+    ),
+    Credit(
+        "Roboto Slab", "Apache License 2.0",
+        "Typeface for headings, bundled in the app.",
     ),
     Credit(
         "Android libraries", "Apache License 2.0",

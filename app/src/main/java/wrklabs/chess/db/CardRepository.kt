@@ -1,3 +1,10 @@
+/*
+ * Copyright (C) bijoyv9 and contributors (Rookahead, https://github.com/rookahead/rookahead)
+ * Copyright (C) 2026 naveen s
+ *
+ * Storage for the mistake puzzles derived from Rookahead's src/lib/mistakes.ts.
+ * SPDX-License-Identifier: GPL-3.0-or-later. See NOTICE.
+ */
 package wrklabs.chess.db
 
 import android.content.ContentValues

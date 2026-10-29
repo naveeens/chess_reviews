@@ -14,10 +14,14 @@ private fun variable(res: Int, vararg weights: FontWeight) = FontFamily(
     weights.map { w -> Font(res, weight = w, variationSettings = FontVariation.Settings(FontVariation.weight(w.weight))) },
 )
 
-/** DM Sans for text, Syne for headings, DM Mono for numbers: Rookahead's web app's three (see NOTICE). */
+/** DM Sans for text, Roboto Slab for headings, JetBrains Mono for numbers. */
 val Sans = variable(R.font.dm_sans, FontWeight.Normal, FontWeight.Medium, FontWeight.SemiBold, FontWeight.Bold)
-val Display = variable(R.font.syne, FontWeight.SemiBold, FontWeight.Bold, FontWeight.ExtraBold)
-val Mono = FontFamily(Font(R.font.dm_mono))
+val Display = FontFamily(
+    Font(R.font.roboto_slab_medium, FontWeight.Medium),
+    Font(R.font.roboto_slab_semibold, FontWeight.SemiBold),
+    Font(R.font.roboto_slab_bold, FontWeight.Bold),
+)
+val Mono = variable(R.font.jetbrains_mono, FontWeight.Normal, FontWeight.Medium)
 
 val Typography = Typography(
     displaySmall = TextStyle(fontFamily = Display, fontWeight = FontWeight.Bold, fontSize = 30.sp, lineHeight = 34.sp),

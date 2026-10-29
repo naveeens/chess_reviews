@@ -5,5 +5,5 @@
         android:width="216dp"
         android:height="216dp"
         android:gravity="center"
-        android:drawable="@drawable/ic_splash_rook" />
+        android:drawable="@drawable/ic_splash_mark" />
 </layer-list>

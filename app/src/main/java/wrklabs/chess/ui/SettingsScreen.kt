@@ -31,6 +31,7 @@ import wrklabs.chess.Graph
 import wrklabs.chess.engine.EngineStatus
 import wrklabs.chess.settings.AppSettings
 import wrklabs.chess.settings.ReviewSpeed
+import wrklabs.chess.ui.theme.AccentChoice
 import wrklabs.chess.ui.theme.Palette
 
 @OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
@@ -62,10 +63,25 @@ fun SettingsScreen(settings: AppSettings) {
                     Text("Unlimited game reviews are unlocked. Thank you for supporting Chess Reviews.", style = MaterialTheme.typography.bodyMedium, color = c.text)
                 } else {
                     Text(
-                        "Free: ${wrklabs.chess.billing.ReviewQuota.FREE_PER_WEEK} game reviews a week. Pro: unlimited reviews, bought once.",
+                        "Free: ${wrklabs.chess.billing.ReviewQuota.FREE_PER_DAY} game reviews a day. Pro: unlimited reviews, bought once.",
                         style = MaterialTheme.typography.bodySmall, color = c.muted, modifier = Modifier.padding(bottom = 12.dp),
                     )
                     ProUnlock()
+                }
+            }
+
+            Group("Accent") {
+                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    for (a in AccentChoice.entries) {
+                        val on = a == settings.accent
+                        // The chosen one gets a ring with a gap; the ring is inside the 44dp, so the row doesn't shift.
+                        Box(
+                            Modifier.size(44.dp).clip(CircleShape).clickable(onClickLabel = a.title) { store.update { copy(accent = a) } }
+                                .let { if (on) it.border(2.dp, c.text, CircleShape) else it }
+                                .padding(if (on) 5.dp else 3.dp)
+                                .clip(CircleShape).background(a.color),
+                        )
+                    }
                 }
             }
 
@@ -77,6 +93,7 @@ fun SettingsScreen(settings: AppSettings) {
                 Toggle("Coordinates", settings.coordinates) { v -> store.update { copy(coordinates = v) } }
                 Toggle("Highlight the last move", settings.highlightLastMove) { v -> store.update { copy(highlightLastMove = v) } }
                 Toggle("Show legal moves", settings.showLegalMoves) { v -> store.update { copy(showLegalMoves = v) } }
+                Toggle("Material difference", settings.showMaterial) { v -> store.update { copy(showMaterial = v) } }
                 Toggle("Move sounds", settings.sound) { v -> store.update { copy(sound = v) } }
             }
 
@@ -89,6 +106,17 @@ fun SettingsScreen(settings: AppSettings) {
             }
 
             Group("About") {
+                val uri = androidx.compose.ui.platform.LocalUriHandler.current
+                Row(
+                    Modifier.fillMaxWidth().bleed(12.dp).clip(RoundedCornerShape(12.dp)).clickable { uri.openUri("https://github.com/rookahead/rookahead") }.padding(horizontal = 12.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Column(Modifier.weight(1f)) {
+                        Text("Based on Rookahead", style = MaterialTheme.typography.bodyLarge, color = c.text)
+                        Text("github.com/rookahead/rookahead", style = MaterialTheme.typography.bodySmall, color = c.brand)
+                    }
+                    Text("›", style = MaterialTheme.typography.titleLarge, color = c.muted)
+                }
                 Row(
                     Modifier.fillMaxWidth().bleed(12.dp).clip(RoundedCornerShape(12.dp)).clickable { licences = true }.padding(horizontal = 12.dp, vertical = 8.dp),
                     verticalAlignment = Alignment.CenterVertically,
@@ -122,7 +150,7 @@ private fun UsernameField(site: String, saved: String, onSave: (String) -> Unit)
     val c = Palette.colors
     if (saved.isNotEmpty()) {
         Row(
-            Modifier.fillMaxWidth().heightIn(min = 60.dp).clip(RoundedCornerShape(14.dp)).border(1.dp, c.border, RoundedCornerShape(14.dp)).padding(start = 16.dp, top = 6.dp, bottom = 6.dp, end = 10.dp),
+            Modifier.fillMaxWidth().heightIn(min = 56.dp).clip(RoundedCornerShape(14.dp)).border(1.dp, c.border, RoundedCornerShape(14.dp)).padding(start = 16.dp, top = 6.dp, bottom = 6.dp, end = 6.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
