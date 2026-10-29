@@ -53,4 +53,18 @@ class SacrificeTest {
         assertNotNull(d)
         assertEquals(true, d!!.declined)
     }
+
+    @Test
+    fun aRookGivenUpForAKnightAndPawnInAForcedMateIsASacrifice() {
+        val fen = "r3r1k1/p4ppp/2pR1n2/8/1PB1p2q/P1Q5/1B4PP/5R1K w - - 0 26"
+        val pv = listOf("g7f6", "f1f6", "e8e5", "c3e5", "h4e1", "f6f1", "e1f1", "c4f1")
+        assertNull(detail(fen, "d6f6", pv))
+        assertEquals(true, MoveClassifier.matingSacrifice(fen, after(fen, "d6f6"), pv, PieceColor.WHITE))
+    }
+
+    @Test
+    fun anEvenTradeIsNotAMatingSacrifice() {
+        val fen = "6k1/5ppp/8/3n4/8/8/5PPP/3R2K1 w - - 0 1"
+        assertEquals(false, MoveClassifier.matingSacrifice(fen, after(fen, "d1d5"), listOf("g8f8"), PieceColor.WHITE))
+    }
 }

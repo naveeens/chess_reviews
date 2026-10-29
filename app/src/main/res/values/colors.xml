@@ -7,6 +7,6 @@
     <color name="teal_700">#FF018786</color>
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
-    <!-- The page colour of the default (dark Sky) theme: what shows before the first frame. -->
+    <!-- The page colour of the default (dark) theme: what shows before the first frame. -->
     <color name="page_dark">#FF0E0E10</color>
 </resources>

@@ -328,46 +328,6 @@ class AnalysisViewModel(application: Application) : AndroidViewModel(application
         _state.update { it.copy(engineIds = it.engineIds - pathTo(tree, id).toSet(), whyFrom = null, whyText = null) }
     }
 
-    /**
-     * "Show why": the opponent's best reply to the move you played, played out on the board as far as it explains itself, and what
-     * it came to. For a missed mate it starts before your move and plays what you could have done. The line is taken from the
-     * search the grade was made from, so nothing is searched again.
-     */
-    fun showWhy() {
-        val s = _state.value
-        val played = (s.whyFrom ?: s.currentNodeId).let { s.tree.nodes[it] } ?: return
-        val cls = s.grades[played.id] ?: return
-        if (cls != MoveClass.MISTAKE && cls != MoveClass.MISS && cls != MoveClass.BLUNDER) return
-        val missed = cls == MoveClass.MISS
-        val start = (if (missed) played.parentId?.let { s.tree.nodes[it] } else played) ?: return
-        val position = evals[start.fen]?.second ?: return
-        val mover = if (played.ply % 2 == 1) PieceColor.WHITE else PieceColor.BLACK
-        val mating = missed && (position.score as? Score.Mate)?.let { it.value != 0 && ((mover == PieceColor.WHITE) == (it.value > 0)) } == true
-        val plan = WhyLine.plan(start.fen, position.pv, mating)
-        val opponent = if (mover == PieceColor.WHITE) (s.info?.black ?: "Black") else (s.info?.white ?: "White")
-
-        whyJob?.cancel()
-        liveJob?.cancel()
-        _state.update { it.copy(whyFrom = null) }
-        goTo(s.tree, start.id)
-        _state.update { it.copy(whyFrom = played.id, whyText = null) }
-        whyJob = viewModelScope.launch {
-            for ((i, move) in plan.withIndex()) {
-                delay(if (i == 0) 500 else 900)
-                val st = _state.value
-                if (st.whyFrom != played.id) return@launch   // you moved on
-                val (t, n) = st.tree.addMove(st.currentNodeId, move.uci) ?: break
-                // The line is the engine's, unless the move is one of yours that was already there.
-                if (n !in st.tree.nodes) _state.update { it.copy(engineIds = it.engineIds + n) }
-                goTo(t, n, keepWhy = true)
-            }
-            val st = _state.value
-            if (st.whyFrom != played.id) return@launch
-            val text = WhyLine.text(start.fen, st.currentNode.fen, st.currentNode.san, mover, opponent, position.score, missed, mating)
-            _state.update { if (it.whyFrom == played.id) it.copy(whyText = text) else it }
-        }
-    }
-
     /** The sound of the move that led to `node`: on the way forward, on the way back, and for a move you play. */
     private fun sound(node: MoveNode) {
         if (!settings.value.sound || node.san.isNullOrEmpty()) return

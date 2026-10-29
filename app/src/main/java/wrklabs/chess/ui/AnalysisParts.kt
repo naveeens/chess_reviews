@@ -42,7 +42,7 @@ import wrklabs.chess.ui.theme.Palette
  * The circle is the player's colour, white or black, and holds their score: 1, 0 or ½ (nothing while the result is unknown).
  */
 @Composable
-fun PlayerBar(name: String, rating: Int?, color: PieceColor, accuracy: Double?, modifier: Modifier = Modifier, score: String? = null) {
+fun PlayerBar(name: String, rating: Int?, color: PieceColor, accuracy: Double?, modifier: Modifier = Modifier, score: String? = null, material: Int? = null) {
     val c = Palette.colors
     Row(
         modifier = modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 3.dp),
@@ -54,6 +54,13 @@ fun PlayerBar(name: String, rating: Int?, color: PieceColor, accuracy: Double?, 
         Row(Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(name, style = MaterialTheme.typography.titleSmall, color = c.text, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false))
             if (rating != null) Text(rating.toString(), style = MaterialTheme.typography.bodySmall, color = c.muted, maxLines = 1)
+        }
+        if (material != null && material != 0) {
+            Text(
+                if (material > 0) "+$material" else "\u2212${-material}",
+                style = MaterialTheme.typography.labelMedium, color = c.muted, maxLines = 1,
+                modifier = Modifier.semantics { contentDescription = if (material > 0) "Ahead by $material points" else "Behind by ${-material} points" },
+            )
         }
         if (accuracy != null) Chip(accuracyChip(accuracy), color = c.brandCard, textColor = c.brandCardText)
     }

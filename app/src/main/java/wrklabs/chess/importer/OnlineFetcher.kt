@@ -41,7 +41,7 @@ private class Fetched(val body: String, val etag: String?)
 /** The public Chess.com and Lichess APIs: no sign-in, just a username. */
 object OnlineFetcher {
     /** Names the app and where to reach its maker, as Chess.com and Lichess ask of API clients. */
-    private const val USER_AGENT = "WrkChess-Android/1.0 (+https://www.wrklabs.in/chess.html)"
+    private const val USER_AGENT = "WrkChess-Android/1.2 (+https://www.wrklabs.in/chess.html)"
 
 
     /**

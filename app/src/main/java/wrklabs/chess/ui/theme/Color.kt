@@ -4,7 +4,7 @@ import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
 
-/** Colours the app uses beyond Material's scheme, named as on the stylesheet of Rookahead's web app (https://github.com/rookahead/rookahead, GPL-3.0-or-later), whose palette this follows. */
+/** Colours the app uses beyond Material's scheme. */
 @Immutable
 data class AppColors(
     val bg: Color,

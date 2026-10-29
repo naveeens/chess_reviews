@@ -54,7 +54,7 @@ data class ReviewUiState(
     val progress: Float = 0f,
     val reviewStart: Long = 0,
     val message: String? = null,
-    /** Set when the free weekly reviews are used up: when the next one comes back, in ms. */
+    /** Set when the free daily reviews are used up: when the next one comes back, in ms. */
     val limitUntil: Long? = null,
     /** False: the summary screen; true: the board. A game opens on its summary. */
     val showBoard: Boolean = false,
@@ -273,9 +273,9 @@ class ReviewViewModel(application: Application) : AndroidViewModel(application) 
         liveJob?.cancel()
         replyJob?.cancel()
         reviewJob = viewModelScope.launch {
-            // Free accounts have a few reviews a week; a game already reviewed can always be done again.
+            // Free accounts have a number of reviews a day; a game already reviewed can always be done again.
             val now = System.currentTimeMillis()
-            val times = Graph.games.reviewTimesSince(now - ReviewQuota.WEEK_MS)
+            val times = Graph.games.reviewTimesSince(now - ReviewQuota.DAY_MS)
             if (!ReviewQuota.allowed(Graph.pro.owned.value, times) && !Graph.games.hasGame(info.key)) {
                 _state.update { it.copy(limitUntil = ReviewQuota.nextFreeAt(times)) }
                 return@launch

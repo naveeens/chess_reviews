@@ -1,7 +1,10 @@
 /*
- * Derived from Rookahead's src/lib/classify.ts (https://github.com/rookahead/rookahead), by bijoyv9 and
- * contributors, GPL-3.0-or-later. Ported from TypeScript to Kotlin and changed for this app: the verdict
- * names, the board model and the Android types. See NOTICE.
+ * Copyright (C) bijoyv9 and contributors (Rookahead, https://github.com/rookahead/rookahead)
+ * Copyright (C) 2026 naveen s
+ *
+ * Derived from Rookahead's src/lib/classify.ts, ported from TypeScript to Kotlin and changed for this
+ * app: the verdict names, the board model and the Android types.
+ * SPDX-License-Identifier: GPL-3.0-or-later. See NOTICE.
  */
 package wrklabs.chess.classifier
 
@@ -44,7 +47,7 @@ data class GameReport(
 
 object MoveClassifier {
 
-    const val RULES_VERSION = 10
+    const val RULES_VERSION = 11
     /** Win% from which a position counts as won (about +7 pawns). */
     const val WINNING = 93.0
     /** A mate this near is one you are expected to find. */
@@ -176,12 +179,24 @@ object MoveClassifier {
     private const val SACRIFICE_PLIES = 6
     private const val SACRIFICE_MIN = 2
 
+    /**
+     * A piece worth three or more given up for less than it cost once the first recapture is made, inside a forced mate. Material alone calls a rook for a knight
+     * and a pawn a trade, but with the king being hunted it is a sacrifice.
+     */
+    fun matingSacrifice(beforeFen: String, afterFen: String, pv: List<String>, color: PieceColor): Boolean {
+        if (ChessBoard.fromFen(afterFen).isCheckmate()) return false
+        return acceptedSacrifice(beforeFen, afterFen, pv, color, { _, _ -> false }, minLost = 1, minPiece = 3, plies = 2) != null
+    }
+
     private fun acceptedSacrifice(
         beforeFen: String,
         afterFen: String,
         pv: List<String>,
         color: PieceColor,
-        hungAlready: (Square, PieceType) -> Boolean
+        hungAlready: (Square, PieceType) -> Boolean,
+        minLost: Int = SACRIFICE_MIN,
+        minPiece: Int = 0,
+        plies: Int = SACRIFICE_PLIES
     ): SacrificeKind? {
         val start = materialBalance(beforeFen, color)
         var board = ChessBoard.fromFen(afterFen)
@@ -191,8 +206,9 @@ object MoveClassifier {
         var captured = 0
         var lastTaken: PieceType? = null
         var takenCount = 0
+        var biggest = 0
 
-        for (uci in pv.take(SACRIFICE_PLIES)) {
+        for (uci in pv.take(plies)) {
             if (uci.length < 4) break
             val from = Square.fromName(uci.substring(0, 2))
             val to = Square.fromName(uci.substring(2, 4))
@@ -204,7 +220,7 @@ object MoveClassifier {
             if (!ours && target == null && captured == 0) return null
             if (!ours && target != null) {
                 if (hungAlready(to, target.type)) forgiven += target.type.value
-                else { takenCount++; lastTaken = target.type }
+                else { takenCount++; lastTaken = target.type; biggest = max(biggest, target.type.value) }
                 captured++
             }
             if (ours && target != null) captured++
@@ -217,7 +233,7 @@ object MoveClassifier {
         }
 
         val lost = start - settled - settledForgiven
-        if (takenCount == 0 || lost < SACRIFICE_MIN) return null
+        if (takenCount == 0 || lost < minLost || biggest < minPiece) return null
         return if (takenCount == 1 && lastTaken == PieceType.ROOK && lost < 3) SacrificeKind.EXCHANGE else SacrificeKind.MATERIAL
     }
 
@@ -313,6 +329,7 @@ object MoveClassifier {
         var onlyGood = false
         var onlyMate = false
         var fastestMate = false
+        val forcedMate = f.playedBest && (mateIn(f.before.score, f.color) ?: 0) >= 2
         if (f.playedBest && f.before.second != null && f.legalMoves > 1) {
             val secondWin = moverWin(f.before.second, f.color)
             onlyGood = f.winAfter >= HOLDING && (f.winBefore - secondWin) / 100.0 >= LossBands.INACCURACY && secondWin < 85.0
@@ -329,7 +346,10 @@ object MoveClassifier {
         // Already winning without it, even if this move had not been found: nothing brilliant about it.
         val alreadyWinning = (f.before.second?.let { moverWin(it, f.color) } ?: f.winBefore) >= WINNING
         val soundSac = sac != null && f.playedBest && f.winAfter >= HOLDS && !alreadyWinning && (sac.kind != SacrificeKind.EXCHANGE || onlyGood)
-        if (soundSac || (sac != null && fastestMate)) return MoveClass.BRILLIANT
+        // A mating sacrifice that material alone would call a trade, so there is no detail to hold it to the usual rules.
+        val matingSac = gradable && forcedMate && sac == null &&
+            matingSacrifice(f.parent.fen, f.node.fen, f.after.pv, f.color)
+        if (soundSac || (sac != null && fastestMate) || matingSac) return MoveClass.BRILLIANT
         if ((onlyGood || onlyMate) && !f.mates && !takesBack(f.line.getOrNull(f.index - 2), f.parent, f.node, f.color) && isCritical(f.parent, f.node, f.color)) return MoveClass.GREAT
         return null
     }

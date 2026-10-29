@@ -1,3 +1,10 @@
+/*
+ * Copyright (C) bijoyv9 and contributors (Rookahead, https://github.com/rookahead/rookahead)
+ * Copyright (C) 2026 naveen s
+ *
+ * Train screen for the mistake puzzles derived from Rookahead's src/lib/mistakes.ts.
+ * SPDX-License-Identifier: GPL-3.0-or-later. See NOTICE.
+ */
 package wrklabs.chess.ui
 
 import androidx.compose.foundation.layout.*
@@ -42,9 +49,9 @@ fun TrainScreen(vm: TrainViewModel, puzzles: PuzzleViewModel, settings: AppSetti
             is TrainState.Loading -> Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) { CircularProgressIndicator(color = c.brand) }
             is TrainState.AllDone -> Box(Modifier.padding(14.dp)) {
                 if (summary.total == 0) {
-                    EmptyState("No mistakes yet", "Review a few of your games and the moves you got wrong turn up here as puzzles.", action = { RButton("Your games", onOpenGames) })
+                    EmptyState("No mistakes yet", "Review a few of your games and the moves you got wrong turn up here as puzzles.", action = { RButton("Your games", onOpenGames, style = ButtonStyle.OnCard) })
                 } else {
-                    EmptyState("All caught up", "You've been through everything that's due. Come back tomorrow.", action = { RButton("Check again", vm::loadSession, style = ButtonStyle.Tonal) })
+                    EmptyState("All caught up", "You've been through everything that's due. Come back tomorrow.", action = { RButton("Check again", vm::loadSession, style = ButtonStyle.OnCardSoft) })
                 }
             }
             is TrainState.Question -> {
@@ -146,7 +153,7 @@ private fun ColumnScope.PuzzleSection(vm: PuzzleViewModel, settings: AppSettings
     when (val q = state) {
         is PuzzleState.Loading -> Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) { CircularProgressIndicator(color = c.brand) }
         is PuzzleState.AllDone -> Box(Modifier.padding(14.dp)) {
-            EmptyState("Done for today", "${wrklabs.chess.db.PuzzleRepository.NEW_PER_DAY} new puzzles a day, and any that come back. See you tomorrow.", action = { RButton("Check again", vm::loadSession, style = ButtonStyle.Tonal) })
+            EmptyState("Done for today", "${wrklabs.chess.db.PuzzleRepository.NEW_PER_DAY} new puzzles a day, and any that come back. See you tomorrow.", action = { RButton("Check again", vm::loadSession, style = ButtonStyle.OnCardSoft) })
         }
         is PuzzleState.Question -> {
             val puzzle = q.card.puzzle

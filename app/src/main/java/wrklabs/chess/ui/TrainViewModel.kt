@@ -1,3 +1,11 @@
+/*
+ * Copyright (C) bijoyv9 and contributors (Rookahead, https://github.com/rookahead/rookahead)
+ * Copyright (C) 2026 naveen s
+ *
+ * Derived from Rookahead's src/lib/mistakes.ts (puzzles made from your own mistakes), ported to
+ * Kotlin and changed for Android.
+ * SPDX-License-Identifier: GPL-3.0-or-later. See NOTICE.
+ */
 package wrklabs.chess.ui
 
 import androidx.lifecycle.ViewModel

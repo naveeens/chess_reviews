@@ -1,6 +1,8 @@
 Chess Reviews
 Copyright (C) 2026 naveen s
 
+Portions Copyright (C) bijoyv9 and contributors (Rookahead), see below.
+
 Chess Reviews is free software: you can redistribute it and/or modify it under the terms of the GNU General
 Public License as published by the Free Software Foundation, either version 3 of the License, or (at your
 option) any later version. It is distributed without any warranty; see LICENSE.
@@ -9,12 +11,16 @@ Portions are derived from Rookahead (https://github.com/rookahead/rookahead), co
 (bijoyv9 and contributors), licensed under the GNU GPL v3 or later:
   - the move classifier (app/src/main/java/wrklabs/chess/classifier/) is a Kotlin port of Rookahead's
     src/lib/classify.ts, with verdict names and Android-specific changes;
-  - the colours, fonts and visual design follow Rookahead's web app.
+  - the mistake puzzles in Train follow Rookahead's src/lib/mistakes.ts;
+
+The original copyright notices are kept in the ported source files. The colours, typefaces and visual
+design of Chess Reviews are its own.
 
 Bundled third-party material:
   - Stockfish: GNU GPL v3, https://github.com/official-stockfish/Stockfish
   - Move sounds: Lichess mobile app "Standard" set, GPL/AGPL, see SOUNDS.md
   - Chess pieces: cburnett set by Colin M. L. Burnett (GPL v2+ / BSD / GFDL)
   - Puzzles (Lichess puzzle database) and opening names (lichess-org/chess-openings): CC0
-  - DM Sans, DM Mono, Syne: SIL Open Font License 1.1
+  - DM Sans, JetBrains Mono: SIL Open Font License 1.1
+  - Roboto Slab: Apache License 2.0
   - AndroidX, Jetpack Compose, Kotlin, kotlinx: Apache License 2.0

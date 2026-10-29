@@ -48,7 +48,6 @@ fun AnalysisScreen(vm: AnalysisViewModel, settings: AppSettings) {
     var loadPgn by remember { mutableStateOf(false) }
     var loadFen by remember { mutableStateOf(false) }
     var options by remember { mutableStateOf(false) }
-    var explained by remember { mutableStateOf(setOf<String>()) }
     val context = LocalContext.current
     LaunchedEffect(settings.analysisEngine, settings.threatArrows, settings.moveFeedback) { vm.restartEngine() }
     val c = Palette.colors
@@ -66,11 +65,8 @@ fun AnalysisScreen(vm: AnalysisViewModel, settings: AppSettings) {
         val showBar = settings.analysisEngine && settings.showEvalBar
         val boardSize = maxWidth
         Column(Modifier.fillMaxSize()) {
-            // The engine's two best lines: a tap anywhere on a row plays its first move.
-            if (settings.analysisEngine) EngineRows(s.lines, s.currentNode.fen, engineStatus, why = if (s.whyFrom != null) (s.whyText ?: "Following the opponent's best reply…") else if (s.thinking) "The engine is replying…" else null) { uci -> vm.playLine(listOf(uci)) }
-            else Text("The engine is off. Turn it on in Analysis options.", style = MaterialTheme.typography.bodyMedium, color = c.muted, modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp))
-
-            if (info != null) PlayerBar(name(topColor), rating(topColor), topColor, null, score = score(topColor))
+            PageHeader("Analyze", subtitle = info?.let { "${it.white} vs ${it.black}" })
+            PlayerBar(name(topColor), rating(topColor), topColor, null, score = score(topColor), material = if (settings.showMaterial) materialDiff(board, topColor) else null)
             Box(Modifier.fillMaxWidth().height(boardSize)) {
                 ChessboardView(
                     modifier = Modifier.size(boardSize),
@@ -91,14 +87,16 @@ fun AnalysisScreen(vm: AnalysisViewModel, settings: AppSettings) {
                 )
             }
             if (showBar) EvalStrip(s.score, s.orientation)
-            if (info != null) PlayerBar(name(bottomColor), rating(bottomColor), bottomColor, null, score = score(bottomColor))
+            PlayerBar(name(bottomColor), rating(bottomColor), bottomColor, null, score = score(bottomColor), material = if (settings.showMaterial) materialDiff(board, bottomColor) else null)
 
             MoveStrip(s.line, s.currentNodeId, null, vm::select, extraGrades = if (settings.moveFeedback && settings.analysisEngine) s.grades else emptyMap(), alternatives = { n -> n.parentId?.let { s.tree.nodes[it] }?.children.orEmpty().filter { it != n.id }.mapNotNull { s.tree.nodes[it] } })
             Spacer(Modifier.weight(1f))
+            // The engine's two best lines: a tap anywhere on a row plays its first move.
+            if (settings.analysisEngine) EngineRows(s.lines, s.currentNode.fen, engineStatus, why = if (s.whyFrom != null) (s.whyText ?: "Following the opponent's best reply…") else if (s.thinking) "The engine is replying…" else null) { uci -> vm.playLine(listOf(uci)) }
+            else Text("The engine is off. Turn it on in Analysis options.", style = MaterialTheme.typography.bodyMedium, color = c.muted, modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp))
+
             Hairline()
-            // The bulb breathes on a flagged move until its explanation has been opened once.
-            val flagged = grade == MoveClass.MISTAKE || grade == MoveClass.MISS || grade == MoveClass.BLUNDER
-            AnalysisToolbar(vm, breathe = if (flagged && s.whyFrom == null && s.currentNodeId !in explained) grade?.composeColor else null, onWhy = { explained = explained + (s.whyFrom ?: s.currentNodeId); vm.showWhy() }, canWhy = grade == MoveClass.MISTAKE || grade == MoveClass.MISS || grade == MoveClass.BLUNDER || (s.whyFrom != null), whyLabel = if (grade == MoveClass.MISS) "What you missed" else "Show why", onOptions = { options = true }, onLoadPgn = { loadPgn = true }, onLoadFen = { loadFen = true }, onCopyFen = { copyText(context, "FEN", vm.fen()) }, onCopyPgn = { copyText(context, "PGN", vm.pgn()) })
+            AnalysisToolbar(vm, onOptions = { options = true }, onLoadPgn = { loadPgn = true }, onLoadFen = { loadFen = true }, onCopyFen = { copyText(context, "FEN", vm.fen()) }, onCopyPgn = { copyText(context, "PGN", vm.pgn()) })
         }
     }
 
@@ -231,7 +229,7 @@ private fun EngineRows(lines: List<EngineLine>, fen: String, status: wrklabs.che
 /** The same bar as on the review screen: the menu, flip, back and forward (a long press on either goes to the start or the end). */
 @OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
 @Composable
-private fun AnalysisToolbar(vm: AnalysisViewModel, breathe: Color?, onWhy: () -> Unit, canWhy: Boolean, whyLabel: String, onOptions: () -> Unit, onLoadPgn: () -> Unit, onLoadFen: () -> Unit, onCopyFen: () -> Unit, onCopyPgn: () -> Unit) {
+private fun AnalysisToolbar(vm: AnalysisViewModel, onOptions: () -> Unit, onLoadPgn: () -> Unit, onLoadFen: () -> Unit, onCopyFen: () -> Unit, onCopyPgn: () -> Unit) {
     val c = Palette.colors
     var menu by remember { mutableStateOf(false) }
     Row(Modifier.fillMaxWidth().height(56.dp).padding(horizontal = 6.dp), horizontalArrangement = Arrangement.SpaceAround, verticalAlignment = Alignment.CenterVertically) {
@@ -247,7 +245,6 @@ private fun AnalysisToolbar(vm: AnalysisViewModel, breathe: Color?, onWhy: () ->
             }
         }
         IconTap(Icons.Default.SwapVert, "Flip board", vm::flip, size = 48)
-        WhyBulb(whyLabel, onWhy, enabled = canWhy, breathe = breathe)
         Box(
             Modifier.size(48.dp).clip(androidx.compose.foundation.shape.CircleShape).combinedClickable(onClick = vm::previous, onLongClick = vm::first),
             contentAlignment = Alignment.Center,
@@ -258,32 +255,3 @@ private fun AnalysisToolbar(vm: AnalysisViewModel, breathe: Color?, onWhy: () ->
         ) { Icon(Icons.AutoMirrored.Filled.NavigateNext, "Next move", tint = c.text, modifier = Modifier.size(28.dp)) }
     }
 }
-
-/** The "Show why" bulb. With a colour to `breathe` it swells and glows in it, slowly, until it is tapped. */
-@Composable
-private fun WhyBulb(label: String, onClick: () -> Unit, enabled: Boolean, breathe: Color?) {
-    val c = Palette.colors
-    val reduced = android.provider.Settings.Global.getFloat(LocalContext.current.contentResolver, android.provider.Settings.Global.ANIMATOR_DURATION_SCALE, 1f) == 0f
-    val phase = if (breathe != null && !reduced) {
-        val t by androidx.compose.animation.core.rememberInfiniteTransition(label = "breath").animateFloat(
-            0f, 1f,
-            androidx.compose.animation.core.infiniteRepeatable(androidx.compose.animation.core.tween(1000, easing = androidx.compose.animation.core.FastOutSlowInEasing), androidx.compose.animation.core.RepeatMode.Reverse),
-            label = "breath",
-        )
-        t
-    } else 1f
-    Box(
-        Modifier.size(48.dp).clip(androidx.compose.foundation.shape.CircleShape)
-            .clickable(enabled = enabled, onClick = onClick, interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }, indication = androidx.compose.material3.ripple()),
-        contentAlignment = Alignment.Center,
-    ) {
-        if (breathe != null) Box(Modifier.size(40.dp).scaled(0.7f + 0.3f * phase).clip(androidx.compose.foundation.shape.CircleShape).background(breathe.copy(alpha = 0.22f * phase)))
-        Icon(
-            Icons.Default.Lightbulb, label,
-            tint = (breathe ?: c.text).copy(alpha = if (!enabled) 0.3f else if (breathe != null) 0.55f + 0.45f * phase else 1f),
-            modifier = Modifier.size(22.dp).scaled(1f + 0.12f * (if (breathe != null) phase else 0f)),
-        )
-    }
-}
-
-private fun Modifier.scaled(scale: Float) = this.graphicsLayer { scaleX = scale; scaleY = scale }

@@ -165,9 +165,9 @@ private fun SummaryScreen(s: ReviewUiState, vm: ReviewViewModel, onBack: () -> U
                 }
                 s.limitUntil != null -> RCard {
                     Text("Free reviews used", style = MaterialTheme.typography.titleMedium, color = c.text)
-                    val back = java.text.DateFormat.getDateInstance(java.text.DateFormat.MEDIUM).format(java.util.Date(s.limitUntil))
+                    val back = java.text.DateFormat.getDateTimeInstance(java.text.DateFormat.MEDIUM, java.text.DateFormat.SHORT).format(java.util.Date(s.limitUntil))
                     Text(
-                        "Free accounts review ${wrklabs.chess.billing.ReviewQuota.FREE_PER_WEEK} games a week. The next one comes back $back. Games you have reviewed stay open, and Pro removes the limit.",
+                        "Free accounts review ${wrklabs.chess.billing.ReviewQuota.FREE_PER_DAY} games a day. The next one comes back $back. Games you have reviewed stay open, and Pro removes the limit.",
                         style = MaterialTheme.typography.bodySmall, color = c.muted, modifier = Modifier.padding(top = 4.dp, bottom = 12.dp),
                     )
                     ProUnlock()
@@ -222,7 +222,7 @@ private fun BoardScreen(s: ReviewUiState, vm: ReviewViewModel, settings: AppSett
                 }
             }
 
-            PlayerBar(name(topColor), rating(topColor), topColor, accuracy(topColor), score = scoreOf(topColor, result))
+            PlayerBar(name(topColor), rating(topColor), topColor, accuracy(topColor), score = scoreOf(topColor, result), material = if (settings.showMaterial) materialDiff(board, topColor) else null)
             ChessboardView(
                 modifier = Modifier.size(boardSize),
                 board = board,
@@ -246,7 +246,7 @@ private fun BoardScreen(s: ReviewUiState, vm: ReviewViewModel, settings: AppSett
                 onMove = vm::onDrag,
             )
             EvalStrip(s.score, s.orientation)
-            PlayerBar(name(bottomColor), rating(bottomColor), bottomColor, accuracy(bottomColor), score = scoreOf(bottomColor, result))
+            PlayerBar(name(bottomColor), rating(bottomColor), bottomColor, accuracy(bottomColor), score = scoreOf(bottomColor, result), material = if (settings.showMaterial) materialDiff(board, bottomColor) else null)
 
             Column(Modifier.weight(1f).fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Box(Modifier.padding(horizontal = 14.dp).padding(top = 4.dp)) { MoveCard(s, vm) }
