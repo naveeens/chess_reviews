@@ -1,0 +1,23 @@
+*.iml
+.gradle
+/local.properties
+/.idea/caches
+/.idea/libraries
+/.idea/modules.xml
+/.idea/workspace.xml
+/.idea/navEditor.xml
+/.idea/assetWizardSettings.xml
+.DS_Store
+/build
+/captures
+.externalNativeBuild
+.cxx
+local.properties
+
+key.properties
+*.jks
+
+.idea/
+.kotlin/
+# Stockfish builds: each is about 100 MB, over GitHub's file limit.
+app/src/main/jniLibs/

@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- The same rook in one colour, for themed icons: the band, the slot and the base line are holes in it. -->
+    <group
+        android:scaleX="0.84375"
+        android:scaleY="0.84375"
+        android:translateX="11.8125"
+        android:translateY="14.34375">
+        <path
+            android:fillColor="#FF000000"
+            android:fillType="evenOdd"
+            android:pathData="M24,14h12v8h8v-8h12v8h8v-8h12v22l-8,6v22l10,8v8H22v-8l10-8V42l-8-6z M30,37.5h40v2.5h-40z M46,52a4,4 0 0,1 8,0v6a4,4 0 0,1 -8,0z M24,72h52v2.5h-52z" />
+    </group>
+</vector>

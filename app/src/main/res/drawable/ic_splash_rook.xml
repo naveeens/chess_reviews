@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- The splash mark: the icon rook in the app accent, used as is, on the page colour, a little smaller so the round splash mask keeps its corners. -->
+    <group
+        android:scaleX="0.76"
+        android:scaleY="0.76"
+        android:translateX="16.0"
+        android:translateY="18.28">
+        <path
+            android:fillColor="#FF41A4D0"
+            android:pathData="M24,14h12v8h8v-8h12v8h8v-8h12v22l-8,6v22l10,8v8H22v-8l10-8V42l-8-6z" />
+        <path
+            android:fillColor="#FF0E0E10"
+            android:pathData="M24,37.5h52v2.5h-52z" />
+        <path
+            android:fillColor="#FF0E0E10"
+            android:pathData="M46,52a4,4 0 0,1 8,0v6a4,4 0 0,1 -8,0z" />
+        <path
+            android:fillColor="#FF0E0E10"
+            android:pathData="M22,72h56v2.5h-56z" />
+    </group>
+</vector>
