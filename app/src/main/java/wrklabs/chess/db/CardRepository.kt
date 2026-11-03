@@ -168,6 +168,32 @@ class CardRepository(private val dbHelper: AppDatabaseHelper) {
         }
     }
 
+    /** Opening positions you got wrong and are due again, oldest first. */
+    suspend fun getDueLines(now: Long = System.currentTimeMillis(), limit: Int = 20): List<DueLine> = withContext(Dispatchers.IO) {
+        dbHelper.readableDatabase.query("card", arrayOf("id", "box", "due", "lapses"), "kind = 'line' AND due <= ?", arrayOf(now.toString()), null, null, "due ASC", limit.toString()).use { c ->
+            buildList { while (c.moveToNext()) add(DueLine(c.getString(0), c.getInt(1), c.getLong(2), c.getInt(3))) }
+        }
+    }
+
+    suspend fun getLineSummary(now: Long = System.currentTimeMillis()): LineSummary = withContext(Dispatchers.IO) {
+        dbHelper.readableDatabase.rawQuery(
+            "SELECT count(*), coalesce(sum(case when due <= ? then 1 else 0 end), 0), coalesce(sum(case when box >= 4 then 1 else 0 end), 0) FROM card WHERE kind = 'line'",
+            arrayOf(now.toString()),
+        ).use { c -> if (c.moveToNext()) LineSummary(c.getInt(0), c.getInt(1), c.getInt(2)) else LineSummary(0, 0, 0) }
+    }
+
+    /**
+     * A position from an opening lesson, got right or wrong at the first try. A wrong one makes a card that is due now;
+     * a right one only counts toward a card that already exists, so lines you know never turn into cards.
+     */
+    suspend fun recordLine(id: String, solved: Boolean, now: Long = System.currentTimeMillis()) {
+        if (solved) {
+            val known = withContext(Dispatchers.IO) { dbHelper.readableDatabase.query("card", arrayOf("id"), "id = ?", arrayOf(id), null, null, null).use { it.moveToNext() } }
+            if (!known) return
+        }
+        recordResult(id, solved, now, kind = "line")
+    }
+
     private fun readCardPuzzle(cursor: Cursor): MistakeCardPuzzle {
         val winBefore = cursor.getDouble(cursor.getColumnIndexOrThrow("win_before"))
         val winAfter = cursor.getDouble(cursor.getColumnIndexOrThrow("win_after"))
@@ -200,3 +226,7 @@ data class CardSummary(
     val due: Int,
     val mastered: Int
 )
+
+data class DueLine(val id: String, val box: Int, val due: Long, val lapses: Int)
+
+data class LineSummary(val total: Int, val due: Int, val learned: Int)

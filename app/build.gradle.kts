@@ -71,6 +71,8 @@ android {
 }
 
 dependencies {
+    // Something in the tree pulls in fragment 1.1.0, which Play flags as outdated.
+    implementation("androidx.fragment:fragment:1.8.9")
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.compose.material3)

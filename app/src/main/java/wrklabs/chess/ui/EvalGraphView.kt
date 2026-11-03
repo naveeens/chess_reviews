@@ -7,6 +7,11 @@ import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
@@ -27,7 +32,7 @@ data class EvalPoint(
     val verdict: MoveClass? = null,
 )
 
-/** White's winning chances over the game: tap or drag to jump to a move. */
+/** White's winning chances over the game: tap to jump to a move, or drag a cursor along it and jump where you let go. */
 @Composable
 fun EvalGraphView(points: List<EvalPoint>, currentPly: Int, onSeekPly: (Int) -> Unit, modifier: Modifier = Modifier) {
     if (points.size < 2) return
@@ -35,6 +40,9 @@ fun EvalGraphView(points: List<EvalPoint>, currentPly: Int, onSeekPly: (Int) -> 
     val first = points.first().ply
     val last = points.last().ply
     val span = (last - first).coerceAtLeast(1)
+    val seek by rememberUpdatedState(onSeekPly)
+    // While a finger is down this is the move under it; nothing navigates until it lifts.
+    var scrub by remember { mutableStateOf<Int?>(null) }
 
     Canvas(
         modifier = modifier
@@ -42,12 +50,15 @@ fun EvalGraphView(points: List<EvalPoint>, currentPly: Int, onSeekPly: (Int) -> 
             .height(84.dp)
             .clip(RoundedCornerShape(12.dp))
             .background(c.field)
-            .pointerInput(points) { detectTapGestures { o -> onSeekPly(first + (o.x / size.width * span).toInt().coerceIn(0, span)) } }
+            .pointerInput(points) { detectTapGestures { o -> seek(first + (o.x / size.width * span).toInt().coerceIn(0, span)) } }
             .pointerInput(points) {
-                detectHorizontalDragGestures { change, _ ->
-                    change.consume()
-                    onSeekPly(first + (change.position.x / size.width * span).toInt().coerceIn(0, span))
-                }
+                fun plyAt(x: Float) = first + (x / size.width * span).toInt().coerceIn(0, span)
+                detectHorizontalDragGestures(
+                    onDragStart = { scrub = plyAt(it.x) },
+                    onDragEnd = { scrub?.let(seek); scrub = null },
+                    onDragCancel = { scrub = null },
+                    onHorizontalDrag = { change, _ -> change.consume(); scrub = plyAt(change.position.x) },
+                )
             },
     ) {
         val w = size.width
@@ -73,7 +84,13 @@ fun EvalGraphView(points: List<EvalPoint>, currentPly: Int, onSeekPly: (Int) -> 
             val v = p.verdict
             if (v != null && v.isNotable) drawCircle(v.composeColor, 3.5.dp.toPx(), Offset(x(p.ply), y(p.winPercent)))
         }
-        val cx = x(currentPly.coerceIn(first, last))
+        val live = scrub
+        val cx = x((live ?: currentPly).coerceIn(first, last))
         drawLine(c.brand, Offset(cx, 0f), Offset(cx, h), strokeWidth = 2.dp.toPx())
+        // A handle on the line while dragging, so it is clear where letting go will land.
+        if (live != null) {
+            val p = points.minByOrNull { kotlin.math.abs(it.ply - live) }
+            if (p != null) drawCircle(c.brand, 6.dp.toPx(), Offset(cx, y(p.winPercent)))
+        }
     }
 }

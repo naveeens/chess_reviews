@@ -364,7 +364,8 @@ class ReviewViewModel(application: Application) : AndroidViewModel(application) 
         val node = s.tree.nodes[nodeId] ?: return
         if (nodeId in s.gameIds || node.uci == null) return
         val parent = node.parentId?.let { s.tree.nodes[it] } ?: return
-        val before = evalCache[parent.fen] ?: gameEval(parent, s) ?: return
+        val before = evalCache[parent.fen] ?: gameEval(parent, s) ?: candidateCache[parent.id]?.firstOrNull()
+            ?.let { ReviewedPosition(it.score, it.uci, it.pv, null) } ?: return
         val review = MoveClassifier.classifyGame(listOf(parent, node), mapOf(parent.fen to before, node.fen to after)).moves[node.id] ?: return
         _state.update { it.copy(grades = it.grades + (nodeId to review)) }
     }

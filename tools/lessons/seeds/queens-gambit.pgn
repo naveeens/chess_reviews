@@ -1,0 +1,13 @@
+[Event "Queen's Gambit"]
+[ECO "D06"]
+[Learn "white"]
+
+{The Queen's Gambit. White offers a wing pawn to pull Black's d-pawn away from the centre. If Black takes it, White gets the pawn back and keeps the better centre. You play White.}
+1. d4 d5 2. c4 {[%cal Gc4d5] Attacks d5. It is a gambit in name only: after ...dxc4 White can win the pawn back.}
+2... e6 {The Queen's Gambit Declined. Black keeps the centre but accepts a passive bishop on c8.}
+(2... dxc4 {The Queen's Gambit Accepted. Black takes the pawn, and White will win it back.} 3. Nf3 Nf6 4. e3 e6 5. Bxc4 c5 6. O-O a6 7. a4 Nc6 8. Qe2 cxd4 9. Rd1 Be7 10. exd4 O-O 11. Nc3 Nb4 {A common setup. White has a lead in development and good piece play.})
+(2... c6 {The Slav. Black supports d5 with a pawn and keeps the bishop free to come out to f5.} 3. Nf3 Nf6 4. Nc3 dxc4 5. a4 {[%cal Ga4b5] Stops ...b5, so Black cannot keep the pawn.} 5... Bf5 6. e3 e6 7. Bxc4 Bb4 8. O-O Nbd7 9. Qe2 Bg6 10. e4 O-O 11. Bd3 Bh5)
+3. Nc3 Nf6 4. Bg5 {[%cal Gg5f6] Pins the knight, so Black's d5 pawn is harder to defend.}
+4... Be7 5. e3 O-O 6. Nf3 h6 7. Bh4 b6 {The Tartakower Variation. Black plans ...Bb7 and ...dxc4 at the right moment.}
+8. cxd5 Nxd5 9. Bxe7 Qxe7 10. Nxd5 exd5 11. Rc1 {[%cal Gc1c8] White takes the open file. Black's bishop on c8 is still the problem piece.} 11... Be6 12. Qa4 c5 13. Qa3 Rc8
+*

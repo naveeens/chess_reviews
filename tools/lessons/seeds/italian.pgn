@@ -1,0 +1,29 @@
+[Event "Italian Game: Giuoco Piano"]
+[ECO "C54"]
+[Learn "white"]
+
+{The Italian Game. White develops fast, points the bishop at f7 and builds a big pawn centre with c3 and d4. You play White.}
+1. e4 e5 2. Nf3 Nc6
+3. Bc4 {[%cal Gc4f7] The bishop looks at f7, Black's weakest square early on, since only the king guards it.}
+3... Bc5 {The Giuoco Piano, the "quiet game". Black copies White and eyes f2.}
+(3... Nf6 {The Two Knights Defence. Black counterattacks e4 instead of defending.}
+4. Ng5 {[%cal Gg5f7,Gc4f7] A second attacker on f7.}
+4... d5 {The only good answer. Black blocks the bishop and hits it back.}
+5. exd5
+5... Na5 {[%cal Ra5c4] The main line. The knight hits the bishop, and White keeps the extra pawn for now.}
+(5... Nxd5 {Greedy.} 6. Nxf7 {[%csl Rf7] The Fried Liver Attack. The knight takes the pawn and drags the king out, and Black is in trouble.})
+6. Bb5+ {[%cal Gb5e8] Check first, so the bishop does not get taken by the knight on a5.}
+6... c6 7. dxc6 bxc6 8. Be2 {The bishop retreats and White is a pawn up. Black has open lines and pieces to attack with, so White has to be careful.}
+8... h6 9. Nf3 e4 10. Ne5 Bd6 11. d4 exd3 12. Nxd3 {White hands back the pawn, trades off the attackers and ends up with a safe position.})
+4. c3 {[%cal Gd2d4] Prepares d4. The pawn also gives the bishop a square on c2 or b3 if it is attacked.}
+4... Nf6
+(4... d6 {A slow setup.} 5. d4 exd4 6. cxd4 Bb6 {White has the centre and the easier game.})
+5. d4 {Strikes at the centre at once. Now Black has to decide what to do about it.}
+5... exd4 6. cxd4
+6... Bb4+ {A check that wins a tempo. White has two ways to block, and they lead to very different games.}
+7. Nc3 {[%cal Gc3e4] The Moller Attack. White gives up the e4 pawn for fast development and an open e-file. It is double-edged: the engine thinks Black is a touch better with best play, but Black has to find a lot of accurate moves.}
+(7. Bd2 {The solid way. White trades bishops and keeps the centre.} 7... Bxd2+ 8. Nbxd2 d5 {Black frees the position. The game is equal.})
+7... Nxe4 8. O-O {Castling ignores the knight on e4, since Black cannot hold the pawn if White gets time to attack it.}
+8... Bxc3 9. d5 {[%cal Gd5c6] A tempo on the knight, and the rook on e1 is about to attack e4.}
+9... Bf6 10. Re1 {[%cal Ge1e4]} 10... Ne7 11. Rxe4 {White has the pawn back and Black's king is still in the middle.}
+11... d6 12. Bg5 Bxg5 13. Nxg5 h6 *

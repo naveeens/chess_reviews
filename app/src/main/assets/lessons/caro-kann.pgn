@@ -1,0 +1,49 @@
+[Event "Caro-Kann Defence"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[ECO "B10"]
+[Learn "black"]
+
+{ The Caro-Kann. Black prepares ...d5 with ...c6 first, so the light-squared bishop can come out before the pawn chain closes it in. You play Black. }
+1. e4 $14 { [%eval 0.31] } 1... c6
+{ [%eval 0.37] [%cal Gc6d5] Supports ...d5 with a pawn, without shutting in the bishop on c8 the way ...e6 would. }
+2. d4 { [%eval 0.49] } 2... d5 { [%eval 0.42] } 3. Nc3
+{ [%eval 0.39] The Classical setup. White defends e4 with a piece. } ( 3. e5
+{ [%eval 0.37] The Advance Variation. White grabs space and shuts the bishop's diagonal, so Black has to act at once. }
+3... Bf5
+{ [%eval 0.46] [%cal Gc8f5] The same idea: the bishop comes out before ...e6. }
+4. Nf3 { [%eval 0.43] } 4... e6 { [%eval 0.48] } 5. Be2 { [%eval 0.45] } 5...
+c5
+{ [%eval 0.53] [%cal Gc6c5] The standard counter. Black attacks the base of White's pawn chain at d4. }
+6. Be3 { [%eval 0.44] } 6... cxd4 { [%eval 0.59] } 7. Nxd4
+{ [%eval 0.47] The engine gives White a small edge here, as it does in most Advance lines. Black is solid and has a clear plan. }
+7... Ne7 { [%eval 0.49] } ) ( 3. exd5
+{ [%eval 0.25] The Exchange Variation. The pawn structure is symmetrical, and Black has an easy game. }
+3... cxd5 $10 { [%eval 0.23] } 4. Bd3 { [%eval 0.17] } 4... Nc6
+{ [%eval 0.20] } 5. c3 { [%eval 0.16] } 5... Nf6 { [%eval 0.20] } 6. Bf4
+{ [%eval 0.19] } 6... Bg4 $14 { [%eval 0.26] } 7. Qb3 { [%eval 0.25] } 7... Qd7
+{ [%eval 0.29] } 8. Nd2 { [%eval 0.27] } 8... e6 $10 { [%eval 0.20] } ) 3...
+dxe4 { [%eval 0.37] } 4. Nxe4 $10 { [%eval 0.24] } 4... Bf5
+{ [%eval 0.23] [%cal Gc8f5] The point of the opening. The bishop comes out before ...e6 closes it in. }
+( 4... Nd7 $14
+{ [%eval 0.37] The Karpov Variation. The knight prepares ...Ngf6, to trade off White's knight on e4 without doubling Black's pawns. }
+5. Ng5 { [%eval 0.38] } 5... Ngf6 { [%eval 0.45] } 6. Bd3 { [%eval 0.45] } 6...
+e6 { [%eval 0.51] } 7. N1f3 { [%eval 0.42] } 7... Bd6 { [%eval 0.42] } 8. Qe2
+{ [%eval 0.49] } 8... h6 { [%eval 0.37] } 9. Ne4 { [%eval 0.41] } 9... Nxe4
+{ [%eval 0.38] } 10. Qxe4 { [%eval 0.40] } 10... Qc7 { [%eval 0.53] } ) 5. Ng3
+$14 { [%eval 0.37] } 5... Bg6
+{ [%eval 0.34] The bishop keeps its diagonal and goes to g6. } 6. h4
+{ [%eval 0.36] [%cal Gh4h5] Threatens h5, which would chase the bishop away. }
+6... h6 { [%eval 0.41] Gives the bishop the square h7. } 7. Nf3
+{ [%eval 0.34] } 7... Nd7 { [%eval 0.43] } 8. h5 { [%eval 0.44] } 8... Bh7
+{ [%eval 0.47] } 9. Bd3
+{ [%eval 0.49] Offers to trade the bishops, which Black is happy to do. } 9...
+Bxd3 { [%eval 0.45] } 10. Qxd3 { [%eval 0.41] } 10... e6
+{ [%eval 0.47] Now that the bishop has been traded, ...e6 is safe. Black is solid, with no weaknesses. }
+11. Bf4 { [%eval 0.27] } 11... Ngf6 { [%eval 0.52] } 12. O-O-O { [%eval 0.49] }
+12... Be7 { [%eval 0.53] A solid, playable position for Black. } *
+

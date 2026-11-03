@@ -1,0 +1,46 @@
+[Event "Queen's Gambit"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[ECO "D06"]
+[Learn "white"]
+
+{ The Queen's Gambit. White offers a wing pawn to pull Black's d-pawn away from the centre. If Black takes it, White gets the pawn back and keeps the better centre. You play White. }
+1. d4 $10 { [%eval 0.22] } 1... d5 $14 { [%eval 0.29] } 2. c4
+{ [%eval 0.29] [%cal Gc4d5] Attacks d5. It is a gambit in name only: after ...dxc4 White can win the pawn back. }
+2... e6
+{ [%eval 0.28] The Queen's Gambit Declined. Black keeps the centre but accepts a passive bishop on c8. }
+( 2... dxc4
+{ [%eval 0.29] The Queen's Gambit Accepted. Black takes the pawn, and White will win it back. }
+3. Nf3 { [%eval 0.27] } 3... Nf6 { [%eval 0.25] } 4. e3 { [%eval 0.29] } 4...
+e6 { [%eval 0.36] } 5. Bxc4 { [%eval 0.32] } 5... c5 { [%eval 0.29] } 6. O-O
+{ [%eval 0.28] } 6... a6 { [%eval 0.34] } 7. a4 { [%eval 0.25] } 7... Nc6
+{ [%eval 0.27] } 8. Qe2 { [%eval 0.26] } 8... cxd4 { [%eval 0.33] } 9. Rd1
+{ [%eval 0.32] } 9... Be7 { [%eval 0.30] } 10. exd4 { [%eval 0.33] } 10... O-O
+{ [%eval 0.36] } 11. Nc3 { [%eval 0.29] } 11... Nb4
+{ [%eval 0.29] A common setup. White has a lead in development and good piece play. }
+) ( 2... c6
+{ [%eval 0.30] The Slav. Black supports d5 with a pawn and keeps the bishop free to come out to f5. }
+3. Nf3 { [%eval 0.26] } 3... Nf6 { [%eval 0.29] } 4. Nc3 { [%eval 0.26] } 4...
+dxc4 { [%eval 0.29] } 5. a4
+{ [%eval 0.33] [%cal Ga4b5] Stops ...b5, so Black cannot keep the pawn. } 5...
+Bf5 { [%eval 0.43] } 6. e3 { [%eval 0.25] } 6... e6 { [%eval 0.26] } 7. Bxc4
+{ [%eval 0.26] } 7... Bb4 { [%eval 0.28] } 8. O-O { [%eval 0.35] } 8... Nbd7
+{ [%eval 0.40] } 9. Qe2 { [%eval 0.34] } 9... Bg6 { [%eval 0.41] } 10. e4
+{ [%eval 0.35] } 10... O-O { [%eval 0.45] } 11. Bd3 { [%eval 0.35] } 11... Bh5
+{ [%eval 0.42] } ) 3. Nc3 { [%eval 0.26] } 3... Nf6 { [%eval 0.30] } 4. Bg5
+{ [%eval 0.28] [%cal Gg5f6] Pins the knight, so Black's d5 pawn is harder to defend. }
+4... Be7 { [%eval 0.28] } 5. e3 { [%eval 0.27] } 5... O-O { [%eval 0.25] } 6.
+Nf3 { [%eval 0.25] } 6... h6 { [%eval 0.30] } 7. Bh4 $10 { [%eval 0.14] } 7...
+b6
+{ [%eval 0.17] The Tartakower Variation. Black plans ...Bb7 and ...dxc4 at the right moment. }
+8. cxd5 { [%eval 0.09] } 8... Nxd5 { [%eval 0.07] } 9. Bxe7 { [%eval -0.02] }
+9... Qxe7 { [%eval 0.08] } 10. Nxd5 { [%eval 0.10] } 10... exd5
+{ [%eval 0.03] } 11. Rc1
+{ [%eval 0.07] [%cal Gc1c8] White takes the open file. Black's bishop on c8 is still the problem piece. }
+11... Be6 { [%eval 0.12] } 12. Qa4 { [%eval -0.02] } 12... c5 { [%eval -0.03] }
+13. Qa3 { [%eval -0.10] } 13... Rc8 { [%eval -0.10] } *
+

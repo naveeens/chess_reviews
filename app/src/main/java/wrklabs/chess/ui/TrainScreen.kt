@@ -7,7 +7,11 @@
  */
 package wrklabs.chess.ui
 
+import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.*
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import wrklabs.chess.db.CardRepository
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
@@ -16,6 +20,7 @@ import androidx.compose.material.icons.filled.Lightbulb
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.Modifier
@@ -34,17 +39,38 @@ fun TrainScreen(vm: TrainViewModel, puzzles: PuzzleViewModel, settings: AppSetti
     val summary by vm.summary.collectAsState()
     val c = Palette.colors
     val puzzleSummary by puzzles.summary.collectAsState()
-    var showPuzzles by remember { mutableStateOf(false) }
+    var drill by rememberSaveable { mutableStateOf<Drill?>(null) }
+    // Opening positions that are due again, read each time the hub is shown.
+    val lineDue by produceState(0, drill) { value = wrklabs.chess.Graph.cards.getLineSummary().due }
+    BackHandler(enabled = drill != null) { drill = null }
 
     Column(Modifier.fillMaxSize()) {
-        PageHeader(
-            "Train",
-            subtitle = if (showPuzzles) "${puzzleSummary.due} due · ${puzzleSummary.total} puzzles · ${puzzleSummary.learned} learned"
-            else "${summary.due} due · ${summary.total} mistakes · ${summary.mastered} learned",
-            actions = { IconTap(Icons.Default.Refresh, "Reload", { vm.loadSession(); puzzles.loadSession() }) },
-        )
-        Segmented(listOf(false to "Mistakes", true to "Puzzles"), showPuzzles, { showPuzzles = it }, Modifier.padding(horizontal = 14.dp, vertical = 4.dp).fillMaxWidth())
-        if (showPuzzles) { PuzzleSection(puzzles, settings); return@Column }
+        val open = drill
+        if (open == null) {
+            TrainHub(summary.due + puzzleSummary.due + lineDue, summary, puzzleSummary, lineDue, onOpen = { drill = it }, onReload = { vm.loadSession(); puzzles.loadSession() })
+            return@Column
+        }
+        Row(Modifier.fillMaxWidth().padding(start = 4.dp, end = 8.dp, top = 6.dp, bottom = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+            IconTap(Icons.AutoMirrored.Filled.ArrowBack, "Back to Train", { drill = null }, size = 44)
+            Column(Modifier.weight(1f).padding(start = 4.dp)) {
+                Text(open.title, style = MaterialTheme.typography.headlineSmall, color = c.text)
+                Text(
+                    if (open == Drill.Puzzles) "${puzzleSummary.due} due · ${puzzleSummary.total} puzzles · ${puzzleSummary.learned} learned"
+                    else if (open == Drill.Openings) "Lessons with variations"
+                    else if (open == Drill.Squares) "Timed sets of ten"
+                    else if (open == Drill.Vision) "Attacked, hanging, recall"
+                    else if (open == Drill.Notation) "Lines from real puzzles"
+                    else "${summary.due} due · ${summary.total} mistakes · ${summary.mastered} learned",
+                    style = MaterialTheme.typography.bodySmall, color = c.muted,
+                )
+            }
+            if (open == Drill.Mistakes || open == Drill.Puzzles) IconTap(Icons.Default.Refresh, "Reload", { vm.loadSession(); puzzles.loadSession() })
+        }
+        if (open == Drill.Puzzles) { PuzzleSection(puzzles, settings); return@Column }
+        if (open == Drill.Openings) { OpeningsSection(settings); return@Column }
+        if (open == Drill.Squares) { SquareSection(settings); return@Column }
+        if (open == Drill.Vision) { VisionSection(settings); return@Column }
+        if (open == Drill.Notation) { NotationSection(settings); return@Column }
         when (val q = state) {
             is TrainState.Loading -> Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) { CircularProgressIndicator(color = c.brand) }
             is TrainState.AllDone -> Box(Modifier.padding(14.dp)) {
@@ -215,6 +241,53 @@ private fun ColumnScope.PuzzleSection(vm: PuzzleViewModel, settings: AppSettings
                             if (!q.whyStarted) RButton("Show why", vm::showWhy, style = ButtonStyle.Tonal, compact = true, icon = Icons.Default.Lightbulb)
                             RButton("Next", vm::next, compact = true)
                         }
+                    }
+                }
+            }
+        }
+    }
+}
+
+/** The kinds of training on offer; each is a card on the Train page and opens its own session. */
+enum class Drill(val title: String, val blurb: String) {
+    Mistakes("Your mistakes", "Positions from your own games where you went wrong. Find the move you missed."),
+    Puzzles("Puzzles", "A bundled set of tactics, a few new ones a day and the ones that come back."),
+    Openings("Openings", "Step through opening lessons, with the ideas behind the moves and the lines you will meet."),
+    Squares("Squares", "Find, name and colour squares, knight moves and diagonals, in timed sets of ten. The clock gets shorter as you get them right."),
+    Vision("Vision", "Spot attacked and hanging pieces in real positions, and rebuild a position from memory."),
+    Notation("Notation", "Read a line in algebraic notation and play it on the board."),
+}
+
+/** Train's front page: one card per kind of training, with what is due in each. */
+@Composable
+private fun TrainHub(due: Int, mistakes: wrklabs.chess.db.CardSummary, puzzles: wrklabs.chess.db.PuzzleSummary, openingsDue: Int, onOpen: (Drill) -> Unit, onReload: () -> Unit) {
+    val c = Palette.colors
+    PageHeader(
+        "Train",
+        subtitle = if (due > 0) "$due due today" else "Nothing due today",
+        actions = { IconTap(Icons.Default.Refresh, "Reload", onReload) },
+    )
+    Column(Modifier.verticalScroll(rememberScrollState()).padding(horizontal = 14.dp, vertical = 6.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Drill.entries.forEach { d ->
+            val (n, status) = when (d) {
+                Drill.Mistakes -> mistakes.due to "${mistakes.total} mistakes · ${mistakes.mastered} learned"
+                Drill.Puzzles -> puzzles.due to "${puzzles.total} puzzles · ${puzzles.learned} learned"
+                Drill.Openings -> openingsDue to "Lessons with variations"
+                Drill.Squares -> 0 to "Timed sets of ten"
+                Drill.Vision -> 0 to "Attacked, hanging, recall"
+                Drill.Notation -> 0 to "Lines from real puzzles"
+            }
+            RCard(Modifier.fillMaxWidth(), onClick = { onOpen(d) }) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Column(Modifier.weight(1f)) {
+                        Text(d.title, style = MaterialTheme.typography.titleMedium, color = c.text)
+                        Spacer(Modifier.height(2.dp))
+                        Text(d.blurb, style = MaterialTheme.typography.bodySmall, color = c.muted)
+                        Spacer(Modifier.height(6.dp))
+                        Text(status, style = MaterialTheme.typography.bodySmall, color = c.muted)
+                    }
+                    if (n > 0) {
+                        Text("$n due", style = MaterialTheme.typography.titleSmall, color = c.brand, fontWeight = FontWeight.Bold)
                     }
                 }
             }

@@ -64,6 +64,8 @@ fun ChessboardView(
     orientation: PieceColor = PieceColor.WHITE,
     lastMove: Pair<Square, Square>? = null,
     selectedSquare: Square? = null,
+    /** Squares picked out in the selection colour, for drills that ask for several. */
+    marked: Set<Square> = emptySet(),
     legalMoves: List<Move> = emptyList(),
     arrows: List<EngineArrow> = emptyList(),
     badge: Pair<Square, MoveClass>? = null,
@@ -147,6 +149,7 @@ fun ChessboardView(
                 drawRect(colors.lastMove, topLeft(b), cell)
             }
             selectedSquare?.let { drawRect(colors.selected, topLeft(it), cell) }
+            marked.forEach { drawRect(colors.selected, topLeft(it), cell) }
 
             if (board.isCheck()) {
                 for (i in 0 until 64) {

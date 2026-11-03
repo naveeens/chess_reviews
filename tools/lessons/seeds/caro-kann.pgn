@@ -1,0 +1,18 @@
+[Event "Caro-Kann Defence"]
+[ECO "B10"]
+[Learn "black"]
+
+{The Caro-Kann. Black prepares ...d5 with ...c6 first, so the light-squared bishop can come out before the pawn chain closes it in. You play Black.}
+1. e4 c6 {[%cal Gc6d5] Supports ...d5 with a pawn, without shutting in the bishop on c8 the way ...e6 would.}
+2. d4 d5
+3. Nc3 {The Classical setup. White defends e4 with a piece.}
+(3. e5 {The Advance Variation. White grabs space and shuts the bishop's diagonal, so Black has to act at once.} 3... Bf5 {[%cal Gc8f5] The same idea: the bishop comes out before ...e6.} 4. Nf3 e6 5. Be2 c5 {[%cal Gc6c5] The standard counter. Black attacks the base of White's pawn chain at d4.} 6. Be3 cxd4 7. Nxd4 {The engine gives White a small edge here, as it does in most Advance lines. Black is solid and has a clear plan.} 7... Ne7)
+(3. exd5 {The Exchange Variation. The pawn structure is symmetrical, and Black has an easy game.} 3... cxd5 4. Bd3 Nc6 5. c3 Nf6 6. Bf4 Bg4 7. Qb3 Qd7 8. Nd2 e6)
+3... dxe4 4. Nxe4 Bf5 {[%cal Gc8f5] The point of the opening. The bishop comes out before ...e6 closes it in.}
+(4... Nd7 {The Karpov Variation. The knight prepares ...Ngf6, to trade off White's knight on e4 without doubling Black's pawns.} 5. Ng5 Ngf6 6. Bd3 e6 7. N1f3 Bd6 8. Qe2 h6 9. Ne4 Nxe4 10. Qxe4 Qc7)
+5. Ng3 Bg6 {The bishop keeps its diagonal and goes to g6.}
+6. h4 {[%cal Gh4h5] Threatens h5, which would chase the bishop away.}
+6... h6 {Gives the bishop the square h7.}
+7. Nf3 Nd7 8. h5 Bh7 9. Bd3 {Offers to trade the bishops, which Black is happy to do.} 9... Bxd3 10. Qxd3 e6 {Now that the bishop has been traded, ...e6 is safe. Black is solid, with no weaknesses.}
+11. Bf4 Ngf6 12. O-O-O Be7 {A solid, playable position for Black.}
+*

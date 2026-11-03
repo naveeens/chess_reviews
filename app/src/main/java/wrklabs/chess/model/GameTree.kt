@@ -15,7 +15,15 @@ data class MoveNode(
     val uci: String? = null,
     val from: String? = null,
     val to: String? = null,
-    val clock: Double? = null
+    val clock: Double? = null,
+    /** What a lesson says about this position, after the move that led to it. */
+    val comment: String? = null,
+    /** Numeric annotation glyphs, PGN's $1 (!), $2 (?), $14 (slightly better for white) and so on. */
+    val nags: List<Int> = emptyList(),
+    /** Arrows to draw here, as PGN's [%cal] writes them: a colour letter, then the squares ("Ge2e4"). */
+    val arrows: List<String> = emptyList(),
+    /** Squares to colour here, as PGN's [%csl] writes them ("Rd4"). */
+    val marks: List<String> = emptyList(),
 )
 
 @Serializable
@@ -104,6 +112,12 @@ data class GameTree(
         return addMove(parentId, legal.uci, clock)
     }
 
+    /** The same tree with a note, glyphs, arrows and marks set on one node. */
+    fun annotate(nodeId: String, comment: String? = null, nags: List<Int> = emptyList(), arrows: List<String> = emptyList(), marks: List<String> = emptyList()): GameTree {
+        val node = nodes[nodeId] ?: return this
+        return GameTree(nodes + (nodeId to node.copy(comment = comment, nags = nags, arrows = arrows, marks = marks)))
+    }
+
     fun getMainLine(): List<MoveNode> {
         val list = mutableListOf<MoveNode>()
         var curr = nodes[ROOT_ID]
@@ -166,11 +180,15 @@ data class GameTree(
         if (headers.isNotEmpty()) sb.append("\n")
         val moves = StringBuilder()
 
+        // A comment breaks the move pair, so the next black move needs its number again.
         fun move(node: MoveNode, forceNumber: Boolean) {
             if (moves.isNotEmpty() && !moves.endsWith("(")) moves.append(' ')
             if (node.ply % 2 == 1) moves.append("${(node.ply + 1) / 2}. ")
             else if (forceNumber) moves.append("${node.ply / 2}... ")
             moves.append(node.san ?: node.uci ?: "")
+            node.nags.forEach { moves.append(" \$").append(it) }
+            val note = pgnComment(node)
+            if (note.isNotEmpty()) moves.append(" {").append(note).append('}')
         }
 
         fun write(nodeId: String, forceNumber: Boolean) {
@@ -183,11 +201,18 @@ data class GameTree(
                 write(alt.id, false)
                 moves.append(")")
             }
-            write(main.id, node.children.size > 1)
+            write(main.id, node.children.size > 1 || pgnComment(main).isNotEmpty())
         }
+        nodes[ROOT_ID]?.let { pgnComment(it) }?.takeIf { it.isNotEmpty() }?.let { moves.append('{').append(it).append('}') }
         write(ROOT_ID, true)
         sb.append(moves)
         headers["Result"]?.let { sb.append(' ').append(it) }
         return sb.toString().trim()
+    }
+
+    private fun pgnComment(node: MoveNode): String = buildString {
+        if (node.arrows.isNotEmpty()) append("[%cal ").append(node.arrows.joinToString(",")).append(']')
+        if (node.marks.isNotEmpty()) { if (isNotEmpty()) append(' '); append("[%csl ").append(node.marks.joinToString(",")).append(']') }
+        node.comment?.takeIf { it.isNotBlank() }?.let { if (isNotEmpty()) append(' '); append(it.replace("}", "")) }
     }
 }
