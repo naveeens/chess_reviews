@@ -17,6 +17,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.NavigateBefore
 import androidx.compose.material.icons.automirrored.filled.NavigateNext
+import androidx.compose.material.icons.automirrored.filled.Undo
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -261,15 +262,6 @@ private fun BoardScreen(s: ReviewUiState, vm: ReviewViewModel, settings: AppSett
                     s.strip, s.currentNodeId, s.report, vm::select, offGame = { it !in s.gameIds }, extraGrades = s.grades.mapValues { it.value.cls },
                     alternatives = { n -> n.parentId?.let { s.tree.nodes[it] }?.children.orEmpty().filter { it != n.id }.mapNotNull { s.tree.nodes[it] } },
                 )
-                // Always this tall, so Resume appearing never moves anything.
-                Box(Modifier.fillMaxWidth().height(56.dp).padding(horizontal = 14.dp), contentAlignment = Alignment.Center) {
-                    if (s.canResume) {
-                        Box(
-                            Modifier.fillMaxWidth().height(48.dp).clip(RoundedCornerShape(14.dp)).background(c.brand).clickable(onClick = vm::resume),
-                            contentAlignment = Alignment.Center,
-                        ) { Text("Resume", style = MaterialTheme.typography.labelLarge, color = c.brandInk) }
-                    }
-                }
             }
             }
         }
@@ -350,6 +342,9 @@ private fun Toolbar(s: ReviewUiState, vm: ReviewViewModel, settings: AppSettings
             }
         }
         IconTap(Icons.Default.SwapVert, "Flip board", vm::flip, size = 48)
+        // Back to the game from a variation, the engine's line or "Show why". Always there, dim until there is somewhere to go,
+        // so the buttons beside it do not move.
+        IconTap(Icons.AutoMirrored.Filled.Undo, "Resume the game", vm::resume, enabled = s.canResume, size = 48, tint = if (s.canResume) c.brand else c.text)
         StepButtons(vm::previous, vm::next, vm::first, vm::last)
     }
 }

@@ -1,3 +1,10 @@
+/*
+ * Adapted from fenshot (https://github.com/scoriiu/fenshot), MIT licence: Copyright (c) 2026 SORTINO LABS S.R.L. (kibitzo.com),
+ * which builds on tensorflow_chessbot (https://github.com/Elucidation/tensorflow_chessbot), MIT licence: Copyright (c) 2016 Sameer Ansari.
+ * Ported from TypeScript to Kotlin and changed for this app. Copyright (C) 2026 naveen s.
+ * The MIT licence text is in NOTICE.
+ */
+
 package wrklabs.chess.scan
 
 /** What the tile reader made of a board: the pieces as FEN's first field, and how sure it was of each square (a1 to h8). */

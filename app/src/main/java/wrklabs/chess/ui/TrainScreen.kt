@@ -34,7 +34,7 @@ import wrklabs.chess.ui.theme.Display
 import wrklabs.chess.ui.theme.Palette
 
 @Composable
-fun TrainScreen(vm: TrainViewModel, puzzles: PuzzleViewModel, settings: AppSettings, onOpenGames: () -> Unit, onDrillOpen: (Boolean) -> Unit = {}, onOpenAnalysis: () -> Unit = {}, onOpenEditor: () -> Unit = {}, onReviewGame: (wrklabs.chess.importer.ImportedGame, String) -> Unit = { _, _ -> }) {
+fun TrainScreen(vm: TrainViewModel, puzzles: PuzzleViewModel, settings: AppSettings, onOpenGames: () -> Unit, onDrillOpen: (Boolean) -> Unit = {}, onOpenAnalysis: () -> Unit = {}, onOpenEditor: () -> Unit = {}, onOpenPicture: () -> Unit = {}, onReviewGame: (wrklabs.chess.importer.ImportedGame, String) -> Unit = { _, _ -> }) {
     val state by vm.trainState.collectAsState()
     val summary by vm.summary.collectAsState()
     val c = Palette.colors
@@ -54,7 +54,7 @@ fun TrainScreen(vm: TrainViewModel, puzzles: PuzzleViewModel, settings: AppSetti
     Column(Modifier.fillMaxSize()) {
         val open = drill
         if (open == null) {
-            TrainHub(summary.due + puzzleSummary.due + lineDue, summary, puzzleSummary, lineDue, onOpen = { drill = it }, onAnalysis = onOpenAnalysis, onEditor = onOpenEditor, onReload = { vm.loadSession(); puzzles.loadSession() })
+            TrainHub(summary.due + puzzleSummary.due + lineDue, summary, puzzleSummary, lineDue, onOpen = { drill = it }, onAnalysis = onOpenAnalysis, onEditor = onOpenEditor, onPicture = onOpenPicture, onReload = { vm.loadSession(); puzzles.loadSession() })
             return@Column
         }
         Row(Modifier.fillMaxWidth().padding(start = 4.dp, end = 8.dp, top = 6.dp, bottom = 6.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -289,7 +289,7 @@ enum class Drill(val title: String, val blurb: String) {
 
 /** Train's front page: one card per kind of training, with what is due in each. */
 @Composable
-private fun TrainHub(due: Int, mistakes: wrklabs.chess.db.CardSummary, puzzles: wrklabs.chess.db.PuzzleSummary, openingsDue: Int, onOpen: (Drill) -> Unit, onAnalysis: () -> Unit, onEditor: () -> Unit, onReload: () -> Unit) {
+private fun TrainHub(due: Int, mistakes: wrklabs.chess.db.CardSummary, puzzles: wrklabs.chess.db.PuzzleSummary, openingsDue: Int, onOpen: (Drill) -> Unit, onAnalysis: () -> Unit, onEditor: () -> Unit, onPicture: () -> Unit, onReload: () -> Unit) {
     val c = Palette.colors
     PageHeader(
         "Train",
@@ -326,6 +326,7 @@ private fun TrainHub(due: Int, mistakes: wrklabs.chess.db.CardSummary, puzzles: 
         for ((title, blurb, open) in listOf(
             Triple("Analysis board", "Move the pieces freely and see what the engine thinks, or load a game or a position.", onAnalysis),
             Triple("Board editor", "Set up any position piece by piece, then analyse it or play it against Maia.", onEditor),
+            Triple("Load board from image", "Read a position from a screenshot, a photo or a book diagram, then check it in the editor.", onPicture),
         )) {
             RCard(Modifier.fillMaxWidth(), onClick = open) {
                 Text(title, style = MaterialTheme.typography.titleMedium, color = c.text)

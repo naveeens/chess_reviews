@@ -29,6 +29,9 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import wrklabs.chess.settings.AppSettings
 import wrklabs.chess.ui.theme.Palette
 
+/** A board with no pieces on it. */
+private const val EMPTY_BOARD = "8/8/8/8/8/8/8/8 w - - 0 1"
+
 enum class AppTab(val title: String, val icon: ImageVector) {
     GAMES("Games", Icons.Default.History),
     TRAIN("Train", Icons.Default.School),
@@ -45,6 +48,8 @@ fun MainScreen(settings: AppSettings) {
     var reviewOpen by remember { mutableStateOf(false) }
     // The board editor, over the tabs, with the position it started from.
     var editorFen by rememberSaveable { mutableStateOf<String?>(null) }
+    // The editor was opened to read a picture, and starts empty.
+    var editorForPicture by rememberSaveable { mutableStateOf(false) }
     // The analysis board, a screen of its own over the tabs.
     var analysisOpen by rememberSaveable { mutableStateOf(false) }
     var tab by remember { mutableStateOf(if (settings.hasAccounts) AppTab.GAMES else AppTab.GAMES) }
@@ -101,7 +106,7 @@ fun MainScreen(settings: AppSettings) {
                     onOpenSettings = { tab = AppTab.SETTINGS },
                     onOpenAnalysis = { analysisOpen = true },
                 )
-                AppTab.TRAIN -> TrainScreen(train, puzzles, settings, onOpenGames = { tab = AppTab.GAMES }, onDrillOpen = { trainOpen = it }, onOpenAnalysis = { analysisOpen = true }, onOpenEditor = { editorFen = wrklabs.chess.model.ChessBoard.DEFAULT_FEN }, onReviewGame = { game, me -> review.open(game, me); reviewOpen = true })
+                AppTab.TRAIN -> TrainScreen(train, puzzles, settings, onOpenGames = { tab = AppTab.GAMES }, onDrillOpen = { trainOpen = it }, onOpenAnalysis = { analysisOpen = true }, onOpenEditor = { editorForPicture = false; editorFen = wrklabs.chess.model.ChessBoard.DEFAULT_FEN }, onOpenPicture = { editorForPicture = true; editorFen = EMPTY_BOARD }, onReviewGame = { game, me -> review.open(game, me); reviewOpen = true })
                 AppTab.SETTINGS -> SettingsScreen(settings)
             }
         }
@@ -135,9 +140,10 @@ fun MainScreen(settings: AppSettings) {
         Box(Modifier.fillMaxSize().background(c.bg).statusBarsPadding().navigationBarsPadding().clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) {}) {
             BoardEditor(
                 start, settings,
-                onBack = { editorFen = null },
-                onAnalyse = { fen -> if (analysis.openFen(fen)) { editorFen = null; analysisOpen = true } },
+                onBack = { editorFen = null; editorForPicture = false },
+                onAnalyse = { fen, side -> if (analysis.openFen(fen, side)) { editorFen = null; editorForPicture = false; analysisOpen = true } },
                 onPlay = { fen -> wrklabs.chess.play.PlayLaunch.request.value = wrklabs.chess.play.PlayRequest(fen, null, null, "A position you set up") },
+                startWithPicture = editorForPicture,
             )
         }
     }

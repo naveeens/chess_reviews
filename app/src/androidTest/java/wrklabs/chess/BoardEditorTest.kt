@@ -17,10 +17,11 @@ import wrklabs.chess.ui.theme.ChessTheme
 class BoardEditorTest {
     @get:Rule val rule = createComposeRule()
     private var analysed: String? = null
+    private var analysedSide: wrklabs.chess.engine.PieceColor? = null
 
     private fun show(fen: String = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1") {
         val settings = AppSettings()
-        rule.setContent { ChessTheme(settings.accent) { BoardEditor(fen, settings, onBack = {}, onAnalyse = { analysed = it }, onPlay = {}) } }
+        rule.setContent { ChessTheme(settings.accent) { BoardEditor(fen, settings, onBack = {}, onAnalyse = { fen, side -> analysed = fen; analysedSide = side }, onPlay = {}) } }
     }
 
     private fun click(file: Int, rankFromBottom: Int) = rule.onNodeWithTag("board").performTouchInput {
@@ -66,5 +67,14 @@ class BoardEditorTest {
         rule.onNodeWithText("Black to move").performScrollTo().performClick()
         rule.onNodeWithText("Analyse").performClick()
         assertEquals("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b KQkq - 0 1", analysed)
+    }
+
+    @Test fun theSideTheBoardIsViewedFromGoesOnToAnalysis() {
+        show()
+        rule.onNodeWithText("Analyse").performClick()
+        assertEquals(wrklabs.chess.engine.PieceColor.WHITE, analysedSide)
+        rule.onNodeWithContentDescription("Flip board").performClick()
+        rule.onNodeWithText("Analyse").performClick()
+        assertEquals(wrklabs.chess.engine.PieceColor.BLACK, analysedSide)
     }
 }

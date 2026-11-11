@@ -39,5 +39,11 @@ class ReviewCardTest {
         rule.waitUntil(30_000) { rule.onAllNodesWithContentDescription("Play this line").fetchSemanticsNodes().isNotEmpty() }
         rule.waitUntil(30_000) { rule.onAllNodesWithText("3… Nf6 4. Qxf7#", substring = true).fetchSemanticsNodes().isNotEmpty() }
         rule.onNodeWithText("Show why").assertDoesNotExist()
+        // Resume is a button in the toolbar: dim until there is a line to come back from, then it takes you back to the game.
+        rule.onNodeWithContentDescription("Resume the game").assertIsNotEnabled()
+        rule.runOnIdle { vm.showWhy() }
+        rule.waitUntil(30_000) { vm.state.value.canResume }
+        rule.onNodeWithContentDescription("Resume the game").assertIsEnabled().performClick()
+        rule.waitUntil(10_000) { !vm.state.value.canResume }
     }
 }

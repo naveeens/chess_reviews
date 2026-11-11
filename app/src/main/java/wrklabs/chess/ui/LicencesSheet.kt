@@ -24,6 +24,17 @@ private val CREDITS = listOf(
         "This app's move grading and mistake puzzles are ported from Rookahead by bijoyv9 and contributors, with changes for Android: https://github.com/rookahead/rookahead",
     ),
     Credit(
+        "fenshot and tensorflow_chessbot", "MIT licence",
+        "The code that finds and cuts up a board in a picture is adapted from fenshot, https://github.com/scoriiu/fenshot, Copyright (c) 2026 SORTINO LABS S.R.L. (kibitzo.com), which builds on tensorflow_chessbot, https://github.com/Elucidation/tensorflow_chessbot, Copyright (c) 2016 Sameer Ansari. Both are used under the MIT licence:\n\n" +
+            "Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the \"Software\"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:\n\n" +
+            "The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.\n\n" +
+            "THE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.",
+    ),
+    Credit(
+        "Maia-3", "GNU AGPL v3",
+        "The model that says how often players of a given rating choose each move (assets/maia/maia3-5m.onnx) is Maia-3 (5M) by the Computational Social Science Lab at the University of Toronto, https://github.com/CSSLab/maia3, under the GNU AGPL v3. The code that prepares positions for it is a Kotlin port of its Python. Please cite: Monroe, Eilender, Chalmers, Tang and Anderson, \"Chessformer: A Unified Architecture for Chess Modeling\", ICLR 2026. This app's source, which includes that code, is public at https://github.com/naveeens/chess_reviews",
+    ),
+    Credit(
         "Stockfish", "GNU GPL v3",
         "The chess engine that reviews and analyses your games, run unmodified on your phone. Source code and licence: https://github.com/official-stockfish/Stockfish",
     ),

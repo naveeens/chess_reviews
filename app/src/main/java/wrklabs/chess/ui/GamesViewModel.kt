@@ -75,11 +75,16 @@ class GamesViewModel : ViewModel() {
             settings.state.collect { s ->
                 val now = s.chesscomUser.trim() to s.lichessUser.trim()
                 if (now != users) {
+                    val before = users
                     users = now
-                    // A new name means a different set of games.
-                    known.clear()
+                    // Only the account that changed loses its games: taking one away leaves the other's alone.
+                    val keep = keepAfterAccountChange(known.values, before, now).mapTo(HashSet()) { it.key }
+                    known.keys.filter { it !in keep }.forEach { known.remove(it) }
+                    // What was remembered of a Chess.com archive goes with the games, or a name added back later would skip its months.
+                    if (before.first != now.first) listOf(before.first, now.first).filter { it.isNotEmpty() }.forEach { kv.remove("$MEMORY_PREFIX${it.lowercase()}") }
                     fetchedOnce = false
                     publish()
+                    saveCache()
                     if (s.hasAccounts) refresh()
                 }
             }
@@ -113,7 +118,9 @@ class GamesViewModel : ViewModel() {
             if (chesscom.isNotEmpty()) jobs += {
                 // A name that is new to this phone has no memory yet; one with games already held was read in full by an older version.
                 val memoryKey = "$MEMORY_PREFIX${chesscom.lowercase()}"
-                val memory = kv.get(memoryKey)?.let { runCatching { json.decodeFromString(ArchiveMemory.serializer(), it) }.getOrNull() } ?: ArchiveMemory(complete = chesscomSince > 0)
+                val saved = kv.get(memoryKey)?.let { runCatching { json.decodeFromString(ArchiveMemory.serializer(), it) }.getOrNull() }
+                // A memory with no games to go with it is stale (the list was emptied since): start the history again.
+                val memory = if (chesscomSince > 0 && saved != null) saved else ArchiveMemory()
                 runCatching { OnlineFetcher.fetchChesscomGames(chesscom, chesscomSince, memory, take) { kv.set(memoryKey, json.encodeToString(ArchiveMemory.serializer(), memory)) } }.onFailure { errors += message(it) }
             }
             if (lichess.isNotEmpty()) jobs += {
@@ -151,7 +158,9 @@ class GamesViewModel : ViewModel() {
     }
 
     private suspend fun saveCache() {
-        val all = known.values.sortedByDescending { it.date }.chunked(CHUNK)
+        val (chesscom, lichess) = users
+        // Only games of the accounts now set up are kept.
+        val all = known.values.filter { (it.source == "chesscom" && chesscom.isNotEmpty()) || (it.source == "lichess" && lichess.isNotEmpty()) }.sortedByDescending { it.date }.chunked(CHUNK)
         all.forEachIndexed { i, chunk -> kv.set("$CHUNK_PREFIX$i", json.encodeToString(serializer, chunk)) }
         kv.set(CHUNKS_KEY, all.size.toString())
     }
@@ -160,6 +169,20 @@ class GamesViewModel : ViewModel() {
         const val CHUNK = 100
         const val CHUNKS_KEY = "games.imported.v2.chunks"
         const val CHUNK_PREFIX = "games.imported.v2."
-        const val MEMORY_PREFIX = "games.chesscom.archives.v1."
+        // v2: the v1 memories could be out of step with the games held (see keepAfterAccountChange), so they are not trusted.
+        const val MEMORY_PREFIX = "games.chesscom.archives.v2."
     }
 }
+
+/**
+ * The games to keep when the accounts change from [before] to [now] (Chess.com name, Lichess name): those of an account whose
+ * name is the same. An account that was removed or renamed takes only its own games with it.
+ */
+internal fun keepAfterAccountChange(games: Collection<ImportedGame>, before: Pair<String, String>, now: Pair<String, String>): List<ImportedGame> =
+    games.filter { g ->
+        when (g.source) {
+            "chesscom" -> before.first == now.first
+            "lichess" -> before.second == now.second
+            else -> true
+        }
+    }

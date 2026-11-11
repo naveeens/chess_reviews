@@ -23,7 +23,23 @@ import wrklabs.chess.engine.checkmatedScore
 import wrklabs.chess.importer.PgnParser
 import wrklabs.chess.model.*
 import wrklabs.chess.review.GameInfo
+import wrklabs.chess.maia.Human
+import wrklabs.chess.maia.HumanMove
+import wrklabs.chess.maia.MaiaEncoder
 import wrklabs.chess.sound.SoundPlayer
+
+/** A move players of the rating choose, and the share of them who do. */
+data class HumanChoice(val uci: String, val san: String, val share: Float)
+
+/**
+ * Maia's view of [fen]: the three moves most players of [elo] choose from here ([next]), and, when a move led here, how often
+ * it was played ([playedShare], by players rated [playedElo]) and the three moves people choose instead of it ([instead]).
+ */
+data class HumanInfo(
+    val fen: String, val elo: Int, val next: List<HumanChoice>,
+    val playedSan: String? = null, val playedUci: String? = null, val playedShare: Float? = null, val playedElo: Int? = null,
+    val instead: List<HumanChoice> = emptyList(),
+)
 
 data class AnalysisUiState(
     /** The game the position came from, when it came from one: for the names, ratings and result on the bars. */
@@ -50,6 +66,10 @@ data class AnalysisUiState(
     val whyText: String? = null,
     /** "Opponent replies": the engine is working out its answer to your move. */
     val thinking: Boolean = false,
+    /** What players of a rating do in the position on the board, and how often they play the move that led to it (Maia). */
+    val human: HumanInfo? = null,
+    /** A rating chosen for Maia's numbers; null takes the rating of whoever is to move in the game. */
+    val ratingPick: Int? = null,
 ) {
     val currentNode: MoveNode get() = tree.nodes[currentNodeId] ?: tree.nodes.getValue(ROOT_ID)
     val board: ChessBoard get() = ChessBoard.fromFen(currentNode.fen)
@@ -95,9 +115,17 @@ class AnalysisViewModel(application: Application) : AndroidViewModel(application
     private var whyJob: Job? = null
     private var replyJob: Job? = null
     private var active = true
+    private var humanJob: Job? = null
+    /** The rating to ask Maia about when the position has no game with ratings: the user's own, once it is known. */
+    private var defaultElo = 1500
+    private val humanCache = java.util.concurrent.ConcurrentHashMap<String, Map<String, Float>>()
     private var book: wrklabs.chess.classifier.OpeningsBook? = null
 
     init {
+        viewModelScope.launch {
+            defaultElo = runCatching { Human.userElo(Graph.games.getAllGames().map { it.rating }) }.getOrDefault(1500)
+            loadHuman()
+        }
         viewModelScope.launch {
             book = service.openings()
             _state.update { it.copy(opening = book?.openingOf(listOf(it.currentNode))) }
@@ -151,7 +179,7 @@ class AnalysisViewModel(application: Application) : AndroidViewModel(application
     }
 
     /** A position typed or pasted in as FEN. False when it isn't a position the board can hold. */
-    fun openFen(text: String): Boolean {
+    fun openFen(text: String, orientation: PieceColor = PieceColor.WHITE): Boolean {
         val fen = text.trim().replace("\\s+".toRegex(), " ")
         val ranks = fen.substringBefore(' ').split('/')
         val sane = ranks.size == 8 && ranks.all { r -> r.sumOf { ch -> if (ch.isDigit()) ch.digitToInt() else if (ch.isLetter()) 1 else 99 } == 8 }
@@ -160,7 +188,7 @@ class AnalysisViewModel(application: Application) : AndroidViewModel(application
         val kings = (0 until 64).mapNotNull { board.getPiece(Square.fromIndex(it)) }.filter { it.type == PieceType.KING }
         if (kings.count { it.color == PieceColor.WHITE } != 1 || kings.count { it.color == PieceColor.BLACK } != 1) return false
         val tree = GameTree.create(board.toFen())
-        replyJob?.cancel(); whyJob?.cancel(); _state.value = AnalysisUiState(tree = tree)
+        replyJob?.cancel(); whyJob?.cancel(); _state.value = AnalysisUiState(tree = tree, orientation = orientation)
         goTo(tree, ROOT_ID, quiet = true)
         return true
     }
@@ -382,8 +410,66 @@ class AnalysisViewModel(application: Application) : AndroidViewModel(application
             )
         }
         if (!quiet && nodeId != prev) sound(node)
+        loadHuman()
         // While a line is being shown the engine is left alone: the line is what is being looked at.
         if (_state.value.whyFrom == null) live()
+    }
+
+    /** The rating of whoever is to move in [turn]'s position: the game's, when it has one, else the default. */
+    private fun eloFor(turn: PieceColor): Int {
+        _state.value.ratingPick?.let { return Human.clampElo(it) }
+        val info = _state.value.info
+        return Human.clampElo(if (turn == PieceColor.WHITE) info?.whiteRating else info?.blackRating, defaultElo)
+    }
+
+    private suspend fun humanMoves(fens: List<String>, elo: Int): Map<String, Float>? {
+        val key = "$elo|${fens.last()}"
+        humanCache[key]?.let { return it }
+        val probs = runCatching { Graph.maia.predict(fens.takeLast(MaiaEncoder.HISTORY), elo) }.getOrNull() ?: return null
+        if (humanCache.size > 400) humanCache.clear()
+        return probs.also { humanCache[key] = it }
+    }
+
+    /** Asks Maia what players of the rating play here, and how they would have played the position before the move that led here. A few milliseconds. */
+    fun loadHuman() {
+        humanJob?.cancel()
+        if (!settings.value.showHumanMoves) { _state.update { it.copy(human = null) }; return }
+        val s = _state.value
+        val node = s.currentNode
+        val board = ChessBoard.fromFen(node.fen)
+        val fens = pathTo(s.tree, node.id).asReversed().mapNotNull { s.tree.nodes[it]?.fen }
+        humanJob = viewModelScope.launch {
+            fun top3(b: ChessBoard, probs: Map<String, Float>) =
+                b.legalMoves().mapNotNull { m -> probs[m.uci]?.let { HumanChoice(m.uci, m.san, it) } }.sortedByDescending { it.share }.take(3)
+            // From here: nothing to say once the game is over.
+            val elo = eloFor(board.turn)
+            val next = if (board.isCheckmate() || board.isStalemate()) emptyList() else humanMoves(fens, elo)?.let { top3(board, it) } ?: return@launch
+            // Instead of the move that led here: what people at the rating of the one who made it choose in the position before.
+            var info = HumanInfo(node.fen, elo, next)
+            val uci = node.uci
+            if (uci != null && fens.size >= 2) {
+                val before = fens.dropLast(1)
+                val parent = ChessBoard.fromFen(before.last())
+                val pElo = eloFor(parent.turn)
+                val pp = humanMoves(before, pElo)
+                if (pp != null) info = info.copy(playedSan = node.san, playedUci = uci, playedShare = pp[uci] ?: 0f, playedElo = pElo, instead = top3(parent, pp))
+            }
+            if (info.next.isEmpty() && info.instead.isEmpty()) { _state.update { if (it.currentNodeId == node.id) it.copy(human = null) else it }; return@launch }
+            _state.update { if (it.currentNodeId == node.id) it.copy(human = info) else it }
+        }
+    }
+
+    /** Shows Maia's numbers for players of [elo]; null goes back to the rating of the game's players. */
+    fun pickRating(elo: Int?) {
+        _state.update { it.copy(ratingPick = elo) }
+        loadHuman()
+    }
+
+    /** Takes back the move that led here and plays [uci] in its place, as a variation. */
+    fun playInstead(uci: String) {
+        val parent = _state.value.currentNode.parentId ?: return
+        select(parent)
+        playLine(listOf(uci))
     }
 
     fun first() = select(ROOT_ID)

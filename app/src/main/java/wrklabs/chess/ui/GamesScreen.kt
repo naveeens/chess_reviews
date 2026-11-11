@@ -13,6 +13,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Analytics
@@ -44,6 +45,9 @@ fun GamesScreen(vm: GamesViewModel, settings: AppSettings, onOpen: (GameItem) ->
     val visible = remember(state.items, q) { q.apply(state.items) }
     var searching by rememberSaveable { mutableStateOf(q.search.isNotBlank()) }
     var sortMenu by remember { mutableStateOf(false) }
+
+    val listState = rememberLazyListState()
+    ScrollToTopForNew(listState, visible.firstOrNull()?.game?.key, q)
 
     Column(Modifier.fillMaxSize()) {
         PageHeader(
@@ -110,7 +114,7 @@ fun GamesScreen(vm: GamesViewModel, settings: AppSettings, onOpen: (GameItem) ->
                     action = { RButton("Clear filters", { vm.setQuery { cleared() }; searching = false }, style = ButtonStyle.OnCard) },
                 )
             }
-            else -> LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            else -> LazyColumn(Modifier.fillMaxSize(), state = listState, contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 state.error?.let { err -> item { Text(err, color = c.danger, style = MaterialTheme.typography.bodySmall) } }
                 items(visible, key = { it.game.key }) { item -> GameRow(item, onClick = { onOpen(item) }) }
             }
@@ -235,5 +239,24 @@ private fun SkeletonRow() {
             }
             Box(Modifier.width(36.dp).height(13.dp).clip(RoundedCornerShape(4.dp)).background(c.field))
         }
+    }
+}
+
+/**
+ * New games arrive at the top of a list, above the row it is anchored to, so they would be out of sight. If the list was at the top
+ * it goes back to the top to show them; a changed [query] (a new search, filter or sort) starts at the top too. Someone reading
+ * further down is left where they are.
+ */
+@Composable
+internal fun ScrollToTopForNew(listState: androidx.compose.foundation.lazy.LazyListState, topKey: Any?, query: Any?) {
+    var lastTop by remember { mutableStateOf(topKey) }
+    var lastQuery by remember { mutableStateOf(query) }
+    LaunchedEffect(topKey, query) {
+        val queryChanged = query != lastQuery
+        // At the top: the row that was newest is among the first on screen.
+        val wasAtTop = listState.layoutInfo.visibleItemsInfo.take(2).any { it.key == lastTop }
+        val topChanged = topKey != lastTop
+        lastTop = topKey; lastQuery = query
+        if (queryChanged || (topChanged && wasAtTop)) listState.scrollToItem(0)
     }
 }

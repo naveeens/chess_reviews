@@ -13,6 +13,8 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import kotlinx.coroutines.launch
 import java.io.File
 import wrklabs.chess.Graph
+import wrklabs.chess.scan.LoadedPicture
+import wrklabs.chess.scan.Quad
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -77,7 +79,7 @@ sealed interface EditTool {
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun BoardEditor(startFen: String, settings: AppSettings, onBack: () -> Unit, onAnalyse: (String) -> Unit, onPlay: (String) -> Unit) {
+fun BoardEditor(startFen: String, settings: AppSettings, onBack: () -> Unit, onAnalyse: (String, PieceColor) -> Unit, onPlay: (String) -> Unit, startWithPicture: Boolean = false) {
     val c = Palette.colors
     val context = LocalContext.current
     val draft = remember { PositionDraft.fromFen(startFen) ?: PositionDraft().also { it.startingPosition() } }
@@ -92,28 +94,39 @@ fun BoardEditor(startFen: String, settings: AppSettings, onBack: () -> Unit, onA
     var unsure by remember { mutableStateOf<Set<Square>>(emptySet()) }
     var info by remember { mutableStateOf<String?>(null) }
     var scanning by remember { mutableStateOf(false) }
-    var pictureSheet by remember { mutableStateOf(false) }
+    // Opened to read a picture: the choice of gallery or camera is there straight away.
+    var pictureSheet by remember { mutableStateOf(startWithPicture) }
     val scope = rememberCoroutineScope()
     fun changed() { rev++; note = null }
 
+    // A picture chosen or taken goes to the corners screen first; reading starts when the corners are placed.
+    var crop by remember { mutableStateOf<LoadedPicture?>(null) }
     fun readPicture(uri: Uri?) {
         if (uri == null) return
         scanning = true; note = null; info = null
         scope.launch {
-            val result = runCatching { Graph.scanner.scan(uri) }
+            val loaded = runCatching { Graph.scanner.load(uri) }
+            scanning = false
+            if (loaded.isFailure) note = "That picture could not be opened." else crop = loaded.getOrNull()
+        }
+    }
+    fun readCorners(picture: LoadedPicture, quad: Quad) {
+        crop = null
+        scanning = true; note = null; info = null
+        scope.launch {
+            val result = runCatching { Graph.scanner.scan(picture, quad) }
             scanning = false
             val scanned = result.getOrNull()
-            when {
-                result.isFailure -> note = "That picture could not be opened."
-                scanned == null -> note = "No chessboard found in that picture. Try one cropped closer to the board."
-                else -> {
-                    draft.load("${scanned.placement} ${if (draft.turn == PieceColor.WHITE) "w" else "b"} KQkq - 0 1")
-                    selected = null; unsure = scanned.unsure; changed()
-                    info = when {
-                        !scanned.plausible -> "That does not look like a whole position. Check the pieces."
-                        scanned.unsure.isNotEmpty() -> "The squares marked on the board are ones the reader was unsure of."
-                        else -> "Read from the picture. Check it against the original before you go on."
-                    }
+            if (scanned == null) note = "That picture could not be read."
+            else {
+                draft.load("${scanned.placement} ${if (draft.turn == PieceColor.WHITE) "w" else "b"} KQkq - 0 1")
+                selected = null; unsure = scanned.unsure; changed()
+                // A picture taken from Black's side is shown from Black's side.
+                orientation = if (scanned.fromBlackSide) PieceColor.BLACK else PieceColor.WHITE
+                info = when {
+                    !scanned.plausible -> "That does not look like a whole position. Check the pieces, or place the corners again."
+                    scanned.unsure.isNotEmpty() -> "The squares marked on the board are ones the reader was unsure of."
+                    else -> "Read from the picture. Check it against the original before you go on."
                 }
             }
         }
@@ -151,6 +164,7 @@ fun BoardEditor(startFen: String, settings: AppSettings, onBack: () -> Unit, onA
         if (tool == EditTool.Move) { draft.move(from, to); unsure = unsure - from - to; selected = null; changed() }
     }
 
+    Box(Modifier.fillMaxSize()) {
     Column(Modifier.fillMaxSize()) {
         Row(Modifier.fillMaxWidth().padding(start = 4.dp, end = 8.dp, top = 6.dp, bottom = 6.dp), verticalAlignment = Alignment.CenterVertically) {
             IconTap(Icons.AutoMirrored.Filled.ArrowBack, "Back", onBack, size = 44)
@@ -181,7 +195,7 @@ fun BoardEditor(startFen: String, settings: AppSettings, onBack: () -> Unit, onA
                 ActionBar {
                     RButton("Clear", { draft.clear(); selected = null; unsure = emptySet(); info = null; changed() }, Modifier.weight(1f), style = ButtonStyle.Tonal)
                     RButton("Start", { draft.startingPosition(); selected = null; unsure = emptySet(); info = null; changed() }, Modifier.weight(1f), style = ButtonStyle.Tonal)
-                    RButton("Analyse", { onAnalyse(fen) }, Modifier.weight(2f), enabled = problems.isEmpty(), icon = Icons.AutoMirrored.Filled.ArrowForward)
+                    RButton("Analyse", { onAnalyse(fen, orientation) }, Modifier.weight(2f), enabled = problems.isEmpty(), icon = Icons.AutoMirrored.Filled.ArrowForward)
                 }
             },
         ) {
@@ -226,6 +240,9 @@ fun BoardEditor(startFen: String, settings: AppSettings, onBack: () -> Unit, onA
                 (note ?: problems.firstOrNull())?.let { Text(it, style = MaterialTheme.typography.bodyMedium, color = c.danger) }
             }
         }
+    }
+    // The picture, over the editor, with its four corners to place.
+    crop?.let { picture -> Box(Modifier.fillMaxSize().background(c.bg)) { PictureCrop(picture, onBack = { crop = null }, onRead = { quad -> readCorners(picture, quad) }) } }
     }
 }
 

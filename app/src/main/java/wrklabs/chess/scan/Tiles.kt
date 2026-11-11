@@ -1,11 +1,19 @@
+/*
+ * Adapted from fenshot (https://github.com/scoriiu/fenshot), MIT licence: Copyright (c) 2026 SORTINO LABS S.R.L. (kibitzo.com),
+ * which builds on tensorflow_chessbot (https://github.com/Elucidation/tensorflow_chessbot), MIT licence: Copyright (c) 2016 Sameer Ansari.
+ * Ported from TypeScript to Kotlin and changed for this app. Copyright (C) 2026 naveen s.
+ * The MIT licence text is in NOTICE.
+ */
+
 package wrklabs.chess.scan
 
 import kotlin.math.floor
 
 /** Cuts the board out of the picture and into the 64 squares the tile reader takes. */
 object Tiles {
-    private const val BOARD_PX = 256
-    private const val TILE_PX = 32
+    /** The board is straightened to this many pixels across, and each square is a block of [TILE_PX] by [TILE_PX]: what the square reader was trained on. */
+    const val BOARD_PX = 384
+    private const val TILE_PX = BOARD_PX / 8
     const val TILE_INPUT_SIZE = TILE_PX * TILE_PX
 
     /** A pixel, with the picture's edge repeated outside it. */
@@ -15,7 +23,7 @@ object Tiles {
         return img.data[cy * img.width + cx]
     }
 
-    /** The box, scaled to 256 by 256 with bilinear sampling, values 0..1. */
+    /** The box, scaled to the board size with bilinear sampling, values 0..1. */
     fun boardImage(img: GrayImage, box: BoardBox): FloatArray {
         val cw = box.x1 - box.x0
         val ch = box.y1 - box.y0
@@ -40,7 +48,7 @@ object Tiles {
         return out
     }
 
-    /** The 256 by 256 board as 64 rows of 1024: tile k is rank*8+file with a1 at the bottom left, each a 32 by 32 block. */
+    /** The straightened board as 64 rows of [TILE_INPUT_SIZE]: tile k is rank*8+file with a1 at the bottom left, each a square block. */
     fun slice(board: FloatArray): FloatArray {
         val out = FloatArray(64 * TILE_INPUT_SIZE)
         for (rank in 0 until 8) for (file in 0 until 8) {

@@ -57,6 +57,9 @@ object OnlineFetcher {
         val user = username.trim().lowercase()
         val archives = JSONObject(get("https://api.chess.com/pub/player/$user/games/archives", "Chess.com")).optJSONArray("archives")
         val out = mutableListOf<ImportedGame>()
+        // Until the whole history has been read, nothing is skipped for being older than the newest game held: those are the
+        // very months still missing. (An interrupted first import used to drop them for good.)
+        val sinceMs = effectiveSince(sinceMs, memory.complete)
         if (archives != null) {
             val sinceMonth = if (sinceMs > 0) monthKey(sinceMs) else null
             var reachedStart = true
@@ -100,6 +103,9 @@ object OnlineFetcher {
         }
         out
     }
+
+    /** Only a history that has been read in full can be topped up from the newest game on; otherwise all of it is read. */
+    internal fun effectiveSince(sinceMs: Long, complete: Boolean): Long = if (complete) sinceMs else 0L
 
     /** The month a time falls in, as Chess.com's archives name it ("2026/10"). */
     fun monthKey(ms: Long): String {

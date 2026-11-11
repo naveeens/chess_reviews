@@ -17,6 +17,11 @@ class HumanTest {
         assertEquals("The most common move at 1500 (41%)", Human.note(h(0.41f, 0.41f), "Nf3", MoveClass.BLUNDER))
     }
 
+    @Test fun anyMoveCanBeDescribedWhateverItsGrade() {
+        assertEquals("The most common move at 1500 (41%)", Human.describe(h(0.41f, 0.41f), "Nf3"))
+        assertEquals("12% play this at 1500 · 41% play Nf3", Human.describe(h(0.12f, 0.41f), "Nf3"))
+    }
+
     @Test fun aFindSaysHowRareItIs() {
         assertEquals("Only 2% find this at 1500", Human.note(h(0.02f, 0.5f), "Nf3", MoveClass.GREAT))
         assertEquals("Only <1% find this at 1500", Human.note(h(0.002f, 0.5f), "Nf3", MoveClass.BRILLIANT))

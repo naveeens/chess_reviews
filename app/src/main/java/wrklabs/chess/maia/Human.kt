@@ -22,14 +22,17 @@ object Human {
         return if (pct < 1) "<1%" else "$pct%"
     }
 
+    /** How often the move was played, said either way round: it was the favourite, or here is the favourite and its share. */
+    fun describe(h: HumanMove, topSan: String): String =
+        if (h.playedWasTop) "The most common move at ${h.elo} (${share(h.playedShare)})"
+        else "${share(h.playedShare)} play this at ${h.elo} · ${share(h.topShare)} play $topSan"
+
     /**
      * The line under a move on the card, or null when the numbers add nothing: the grades that are about a player's
      * choices (a slip, or a find) get what people at the rating do; the ordinary good moves need no comment.
      */
     fun note(h: HumanMove, topSan: String, cls: MoveClass): String? = when (cls) {
-        MoveClass.INACCURACY, MoveClass.MISTAKE, MoveClass.MISS, MoveClass.BLUNDER ->
-            if (h.playedWasTop) "The most common move at ${h.elo} (${share(h.playedShare)})"
-            else "${share(h.playedShare)} play this at ${h.elo} · ${share(h.topShare)} play $topSan"
+        MoveClass.INACCURACY, MoveClass.MISTAKE, MoveClass.MISS, MoveClass.BLUNDER -> describe(h, topSan)
         MoveClass.BRILLIANT, MoveClass.GREAT ->
             "Only ${share(h.playedShare)} find this at ${h.elo}"
         else -> null
