@@ -299,6 +299,8 @@ class PlayViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     private fun persist(s: PlayUi) {
+        // A game with no move yet is not worth coming back to: drop any older save instead of keeping an empty one.
+        if (s.game.ucis.isEmpty()) { viewModelScope.launch { store.clearActive() }; return }
         val rec = PlayRecord(s.game.startFen, s.game.ucis, s.userWhite, s.botElo, s.userElo, s.startedAt, s.takebacks, s.hintsUsed, s.auto)
         viewModelScope.launch { store.saveActive(rec) }
     }

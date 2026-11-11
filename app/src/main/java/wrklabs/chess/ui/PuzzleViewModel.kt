@@ -39,6 +39,15 @@ sealed class PuzzleState {
         /** "Show why": the opponent's best reply to your move is being played (or was), and what it came to. */
         val whyStarted: Boolean = false,
         val whyText: String? = null,
+        /** For a wrong move, as text for the card: the puzzle's line, what followed the move that was played, and the engine's grade for it. */
+        val bestLine: String? = null,
+        val playedLine: String? = null,
+        val grade: wrklabs.chess.classifier.MoveClass? = null,
+        val loss: Double = 0.0,
+        /** The position the wrong move was made in. */
+        val beforeFen: String? = null,
+        /** Which of the two lines is on the board. */
+        val lineOn: LineOn? = null,
         /** A pawn is on its way to the last rank and the piece to promote to is being asked. */
         val promotion: Pair<Square, Square>? = null,
     ) : PuzzleState() {
@@ -144,7 +153,12 @@ class PuzzleViewModel(
         val mates = after.isCheckmate()
         if (move.uci != q.expected && !mates) {
             SoundPlayer.playFailed()
-            _state.value = q.copy(selectedSquare = null, status = PuzzleStatus.Wrong, failed = true, wrongMove = move, bestSan = q.board.legalMoves().find { it.uci == q.expected }?.san)
+            val len = wrklabs.chess.Graph.settings.value.lineLength
+            _state.value = q.copy(
+                selectedSquare = null, status = PuzzleStatus.Wrong, failed = true, wrongMove = move, bestSan = q.board.legalMoves().find { it.uci == q.expected }?.san,
+                beforeFen = q.board.toFen(), bestLine = WhyLine.sanLine(q.board.toFen(), q.card.puzzle.moves.drop(q.step).take(len)),
+            )
+            explain(q, move)
             if (!q.failed) record(q, solved = false)
             return
         }
@@ -179,32 +193,69 @@ class PuzzleViewModel(
     }
 
     private var whyJob: Job? = null
+    private var explainJob: Job? = null
 
-    /** "Show why" on a wrong move: it is played, then the opponent's best reply to it, as far as the line explains itself. */
-    fun showWhy() {
+    /** After a wrong move: what followed it, and the engine's grade for it, as text for the card. */
+    private fun explain(q: PuzzleState.Question, move: Move) {
+        explainJob?.cancel()
+        explainJob = viewModelScope.launch {
+            val len = wrklabs.chess.Graph.settings.value.lineLength
+            val depth = WhyLine.depthFor(len, JUDGE_DEPTH)
+            val ms = WhyLine.msFor(len, JUDGE_MS)
+            val fen = q.board.toFen()
+            val afterFen = q.board.makeMove(move).toFen()
+            fun update(change: (PuzzleState.Question) -> PuzzleState.Question) {
+                val now = _state.value as? PuzzleState.Question
+                if (now != null && now.card.puzzle.id == q.card.puzzle.id && now.status == PuzzleStatus.Wrong) _state.value = change(now)
+            }
+            val after = searchPosition(afterFen, depth, ms) ?: return@launch
+            val rest = WhyLine.plan(afterFen, after.pv, WhyLine.isMating(after.score, q.board.turn.opponent()), len).map { it.uci }
+            update { it.copy(playedLine = WhyLine.sanLine(fen, listOf(move.uci) + rest)) }
+            // The grade: the same judgement the review makes, between the position the move was made in and the one it led to.
+            val before = searchPosition(fen, depth, ms)?.copy(bestMove = q.expected) ?: return@launch
+            val (tree, id) = wrklabs.chess.model.GameTree.create(fen).addMove(wrklabs.chess.model.ROOT_ID, move.uci) ?: return@launch
+            val parent = tree.nodes.getValue(wrklabs.chess.model.ROOT_ID)
+            val node = tree.nodes.getValue(id)
+            val review = wrklabs.chess.classifier.MoveClassifier.classifyGame(listOf(parent, node), mapOf(parent.fen to before, node.fen to after)).moves[node.id] ?: return@launch
+            update { it.copy(grade = review.cls, loss = review.loss) }
+        }
+    }
+
+    /** What followed the wrong move: it is played, then the opponent's best reply to it, as far as the line explains itself. */
+    fun showWhy() = playOut(LineOn.Played)
+
+    /** The puzzle's own line, played out from the position the wrong move was made in. */
+    fun showBestLine() = playOut(LineOn.Best)
+
+    private fun playOut(on: LineOn) {
         val q = _state.value as? PuzzleState.Question ?: return
-        val wrong = q.wrongMove
-        if (q.status != PuzzleStatus.Wrong || q.whyStarted || wrong == null) return
-        val after = q.board.makeMove(wrong)
-        val startFen = after.toFen()
-        val mover = q.board.turn
-        _state.value = q.copy(board = after, whyStarted = true, whyText = null, lastMove = wrong.from to wrong.to, selectedSquare = null)
-        SoundPlayer.playMove()
+        val wrong = q.wrongMove ?: return
+        if (q.status != PuzzleStatus.Wrong) return
+        val before = ChessBoard.fromFen(q.beforeFen ?: return)
+        val start = if (on == LineOn.Best) before else before.makeMove(wrong)
+        _state.value = q.copy(board = start, whyStarted = true, whyText = null, lineOn = on, lastMove = if (on == LineOn.Played) wrong.from to wrong.to else null, selectedSquare = null)
+        if (on == LineOn.Played) SoundPlayer.playMove()
         whyJob?.cancel()
         whyJob = viewModelScope.launch {
             fun update(change: (PuzzleState.Question) -> PuzzleState.Question) {
                 val now = _state.value as? PuzzleState.Question
-                if (now != null && now.card.puzzle.id == q.card.puzzle.id && now.whyStarted) _state.value = change(now)
+                if (now != null && now.card.puzzle.id == q.card.puzzle.id && now.lineOn == on) _state.value = change(now)
             }
-            val result = wrklabs.chess.Graph.engine.analyze(
-                wrklabs.chess.engine.AnalyzeRequest(fen = startFen, multiPv = 1, depth = WhyLine.depthFor(wrklabs.chess.Graph.settings.value.lineLength, JUDGE_DEPTH), movetime = WhyLine.msFor(wrklabs.chess.Graph.settings.value.lineLength, JUDGE_MS)),
-            )
-            val line = result?.lines?.firstOrNull()
-            if (line == null) { update { it.copy(whyText = "The engine had nothing to add here.") }; return@launch }
-            var board = after
-            for ((i, move) in WhyLine.plan(startFen, line.pv, plies = wrklabs.chess.Graph.settings.value.lineLength).withIndex()) {
+            val len = wrklabs.chess.Graph.settings.value.lineLength
+            val moves: List<Move> = if (on == LineOn.Best) {
+                // The puzzle's solution, with the opponent's replies in it.
+                var b = before
+                q.card.puzzle.moves.drop(q.step).take(len).mapNotNull { uci -> b.legalMoves().find { it.uci == uci }?.also { b = b.makeMove(it) } }
+            } else {
+                val startFen = start.toFen()
+                val position = searchPosition(startFen, WhyLine.depthFor(len, JUDGE_DEPTH), WhyLine.msFor(len, JUDGE_MS))
+                if (position == null) { update { it.copy(whyText = "The engine had nothing to add here.") }; return@launch }
+                WhyLine.plan(startFen, position.pv, WhyLine.isMating(position.score, before.turn.opponent()), len)
+            }
+            var board = start
+            for ((i, move) in moves.withIndex()) {
                 delay(if (i == 0) 500 else WhyLine.PLY_MS)
-                if ((_state.value as? PuzzleState.Question)?.whyStarted != true) return@launch
+                if ((_state.value as? PuzzleState.Question)?.lineOn != on) return@launch
                 board = board.makeMove(move)
                 SoundPlayer.playMove()
                 val b = board
@@ -213,10 +264,10 @@ class PuzzleViewModel(
         }
     }
 
-    /** From the start again; a miss already counted stays counted. */
     fun retry() {
         replyJob?.cancel()
         whyJob?.cancel()
+        explainJob?.cancel()
         val q = _state.value as? PuzzleState.Question ?: return
         _state.value = (start(q.card) ?: return).copy(failed = q.failed)
     }
@@ -224,6 +275,7 @@ class PuzzleViewModel(
     fun next() {
         replyJob?.cancel()
         whyJob?.cancel()
+        explainJob?.cancel()
         index++
         show()
     }

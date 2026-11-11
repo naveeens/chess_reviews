@@ -36,7 +36,7 @@ class ReviewCardTest {
         rule.runOnIdle { vm.open(game, "B") }
         rule.waitUntil(120_000) { vm.state.value.report != null && !vm.state.value.reviewing }
         rule.runOnIdle { vm.showBoard(); vm.seekToPly(6) }                  // 3... Nf6??
-        rule.waitUntil(30_000) { rule.onAllNodesWithText("Played").fetchSemanticsNodes().isNotEmpty() }
+        rule.waitUntil(30_000) { rule.onAllNodesWithContentDescription("Play this line").fetchSemanticsNodes().isNotEmpty() }
         rule.waitUntil(30_000) { rule.onAllNodesWithText("3… Nf6 4. Qxf7#", substring = true).fetchSemanticsNodes().isNotEmpty() }
         rule.onNodeWithText("Show why").assertDoesNotExist()
     }

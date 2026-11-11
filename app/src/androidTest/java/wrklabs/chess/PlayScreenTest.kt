@@ -159,6 +159,14 @@ class PlayScreenTest {
         assertEquals(saved.ucis, vm!!.state.value.game.ucis.take(saved.ucis.size))
     }
 
+    @Test fun aGameWithNoMoveYetIsNotKeptToContinue() {
+        show()
+        rule.onNodeWithText("Start").performClick()
+        waitForMyTurn()
+        // Playing White, nothing has been moved: there is nothing to come back to.
+        assertNull(runBlocking { Graph.play.active() })
+    }
+
     /** White has a queen and Black a pawn on c6; Qd5 walks into it. */
     private fun startFromQueenPosition() {
         PlayLaunch.request.value = PlayRequest("4k3/8/2p5/8/8/8/8/3QK3 w - - 0 1", true, 600, "A test position")

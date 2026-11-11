@@ -199,5 +199,8 @@ fun Modifier.bleed(by: androidx.compose.ui.unit.Dp): Modifier = this.layout { me
  */
 @Composable
 fun ActionBar(content: @Composable RowScope.() -> Unit) {
-    Row(Modifier.fillMaxWidth().padding(start = 14.dp, end = 14.dp, top = 8.dp, bottom = 4.dp), horizontalArrangement = Arrangement.spacedBy(8.dp), content = content)
+    Column {
+        Hairline()
+        Row(Modifier.fillMaxWidth().padding(start = 14.dp, end = 14.dp, top = 4.dp, bottom = 4.dp), horizontalArrangement = Arrangement.spacedBy(8.dp), content = content)
+    }
 }

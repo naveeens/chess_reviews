@@ -34,7 +34,7 @@ import wrklabs.chess.ui.theme.Display
 import wrklabs.chess.ui.theme.Palette
 
 @Composable
-fun TrainScreen(vm: TrainViewModel, puzzles: PuzzleViewModel, settings: AppSettings, onOpenGames: () -> Unit, onDrillOpen: (Boolean) -> Unit = {}, onReviewGame: (wrklabs.chess.importer.ImportedGame, String) -> Unit = { _, _ -> }) {
+fun TrainScreen(vm: TrainViewModel, puzzles: PuzzleViewModel, settings: AppSettings, onOpenGames: () -> Unit, onDrillOpen: (Boolean) -> Unit = {}, onOpenAnalysis: () -> Unit = {}, onOpenEditor: () -> Unit = {}, onReviewGame: (wrklabs.chess.importer.ImportedGame, String) -> Unit = { _, _ -> }) {
     val state by vm.trainState.collectAsState()
     val summary by vm.summary.collectAsState()
     val c = Palette.colors
@@ -54,7 +54,7 @@ fun TrainScreen(vm: TrainViewModel, puzzles: PuzzleViewModel, settings: AppSetti
     Column(Modifier.fillMaxSize()) {
         val open = drill
         if (open == null) {
-            TrainHub(summary.due + puzzleSummary.due + lineDue, summary, puzzleSummary, lineDue, onOpen = { drill = it }, onReload = { vm.loadSession(); puzzles.loadSession() })
+            TrainHub(summary.due + puzzleSummary.due + lineDue, summary, puzzleSummary, lineDue, onOpen = { drill = it }, onAnalysis = onOpenAnalysis, onEditor = onOpenEditor, onReload = { vm.loadSession(); puzzles.loadSession() })
             return@Column
         }
         Row(Modifier.fillMaxWidth().padding(start = 4.dp, end = 8.dp, top = 6.dp, bottom = 6.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -145,14 +145,18 @@ fun TrainScreen(vm: TrainViewModel, puzzles: PuzzleViewModel, settings: AppSetti
                                 }
                             }
                         }
-                        CardAnswerStatus.Wrong -> RCard(color = c.danger.copy(alpha = 0.16f)) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Column(Modifier.weight(1f)) {
-                                    Text("Best was ${card.bestSan}", style = MaterialTheme.typography.titleMedium, color = c.danger)
-                                    (if (q.whyStarted) q.whyText else "You'll see it again today.")?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = c.muted) }
-                                }
-                            }
-                        }
+                        CardAnswerStatus.Wrong -> MoveCardView(
+                            atStart = false,
+                            san = q.userPlayedMove?.san?.ifEmpty { null } ?: card.playedSan,
+                            cls = q.grade,
+                            lostPercent = (q.loss * 100).toInt().takeIf { it >= 1 },
+                            note = q.whyText ?: "You'll see it again today.",
+                            best = q.bestLine?.let { LineChoice("Best", evalLabel(q.bestScore), it, on = q.lineOn == LineOn.Best) },
+                            bestPending = q.bestLine == null,
+                            played = LineChoice("Played", "", q.playedLine, on = q.lineOn == LineOn.Played),
+                            onBest = vm::showBestLine,
+                            onPlayed = vm::showWhy,
+                        )
                     }
                 }
                 }
@@ -166,7 +170,6 @@ fun TrainScreen(vm: TrainViewModel, puzzles: PuzzleViewModel, settings: AppSetti
                     CardAnswerStatus.Correct -> ActionBar { RButton("Next", vm::nextCard, Modifier.fillMaxWidth(), icon = Icons.AutoMirrored.Filled.ArrowForward) }
                     CardAnswerStatus.Wrong -> ActionBar {
                         RButton("Retry", vm::retryCurrentCard, Modifier.weight(1f), style = ButtonStyle.Tonal)
-                        if (!q.whyStarted) RButton("Show why", vm::showWhy, Modifier.weight(1f), style = ButtonStyle.Tonal, icon = Icons.Default.Lightbulb)
                         RButton("Next", vm::nextCard, Modifier.weight(1f))
                     }
                     else -> Unit
@@ -246,12 +249,18 @@ private fun ColumnScope.PuzzleSection(vm: PuzzleViewModel, settings: AppSettings
                             }
                         }
                     }
-                    PuzzleStatus.Wrong -> RCard(color = c.danger.copy(alpha = 0.16f)) {
-                        Column(Modifier.fillMaxWidth()) {
-                            Text("Best was ${q.bestSan ?: q.expected}", style = MaterialTheme.typography.titleMedium, color = c.danger)
-                            (if (q.whyStarted) q.whyText else "You'll see it again today.")?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = c.muted) }
-                        }
-                    }
+                    PuzzleStatus.Wrong -> MoveCardView(
+                        atStart = false,
+                        san = q.wrongMove?.san?.ifEmpty { null },
+                        cls = q.grade,
+                        lostPercent = (q.loss * 100).toInt().takeIf { it >= 1 },
+                        note = q.whyText ?: "You'll see it again today.",
+                        best = LineChoice("Best", "", q.bestLine, on = q.lineOn == LineOn.Best),
+                        bestPending = false,
+                        played = LineChoice("Played", "", q.playedLine, on = q.lineOn == LineOn.Played),
+                        onBest = vm::showBestLine,
+                        onPlayed = vm::showWhy,
+                    )
                 }
             }
             }
@@ -259,7 +268,6 @@ private fun ColumnScope.PuzzleSection(vm: PuzzleViewModel, settings: AppSettings
                 PuzzleStatus.Solved -> ActionBar { RButton("Next", vm::next, Modifier.fillMaxWidth(), icon = Icons.AutoMirrored.Filled.ArrowForward) }
                 PuzzleStatus.Wrong -> ActionBar {
                     RButton("Retry", vm::retry, Modifier.weight(1f), style = ButtonStyle.Tonal)
-                    if (!q.whyStarted) RButton("Show why", vm::showWhy, Modifier.weight(1f), style = ButtonStyle.Tonal, icon = Icons.Default.Lightbulb)
                     RButton("Next", vm::next, Modifier.weight(1f))
                 }
                 else -> Unit
@@ -281,7 +289,7 @@ enum class Drill(val title: String, val blurb: String) {
 
 /** Train's front page: one card per kind of training, with what is due in each. */
 @Composable
-private fun TrainHub(due: Int, mistakes: wrklabs.chess.db.CardSummary, puzzles: wrklabs.chess.db.PuzzleSummary, openingsDue: Int, onOpen: (Drill) -> Unit, onReload: () -> Unit) {
+private fun TrainHub(due: Int, mistakes: wrklabs.chess.db.CardSummary, puzzles: wrklabs.chess.db.PuzzleSummary, openingsDue: Int, onOpen: (Drill) -> Unit, onAnalysis: () -> Unit, onEditor: () -> Unit, onReload: () -> Unit) {
     val c = Palette.colors
     PageHeader(
         "Train",
@@ -312,6 +320,17 @@ private fun TrainHub(due: Int, mistakes: wrklabs.chess.db.CardSummary, puzzles: 
                         Text("$n due", style = MaterialTheme.typography.titleSmall, color = c.brand, fontWeight = FontWeight.Bold)
                     }
                 }
+            }
+        }
+        SectionLabel("Tools", Modifier.padding(top = 6.dp))
+        for ((title, blurb, open) in listOf(
+            Triple("Analysis board", "Move the pieces freely and see what the engine thinks, or load a game or a position.", onAnalysis),
+            Triple("Board editor", "Set up any position piece by piece, then analyse it or play it against Maia.", onEditor),
+        )) {
+            RCard(Modifier.fillMaxWidth(), onClick = open) {
+                Text(title, style = MaterialTheme.typography.titleMedium, color = c.text)
+                Spacer(Modifier.height(2.dp))
+                Text(blurb, style = MaterialTheme.typography.bodySmall, color = c.muted)
             }
         }
     }

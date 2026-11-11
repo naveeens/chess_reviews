@@ -29,9 +29,9 @@ import wrklabs.chess.ui.theme.Palette
 data class LineChoice(val title: String, val trailing: String, val line: String?, val on: Boolean = false)
 
 /**
- * What happened on the move being looked at, on the review screen: the move and its grade, the loss, a line of news if there
- * is one, then the engine's better line ("Best") and, for a move that went wrong, the line that followed the move that was
- * played ("Played"). Tapping a line plays it on the board.
+ * What happened on the move being looked at: the move and its grade, the loss, a line of news if there is one (what people at
+ * the rating play), the line that followed a move that went wrong, then the engine's better line ("Best"). Tapping either
+ * line plays it on the board.
  */
 @Composable
 fun MoveCardView(
@@ -44,38 +44,56 @@ fun MoveCardView(
     bestPending: Boolean,
     /** For a move that went wrong; null when the move has nothing to explain. */
     played: LineChoice?,
-    onBest: () -> Unit,
+    /** Null for a line that has nothing to play on the board. */
+    onBest: (() -> Unit)?,
     onPlayed: () -> Unit,
 ) {
     val c = Palette.colors
     val title = if (atStart) "Start of the game" else if (cls != null) "$san · ${cls.label}" else san.orEmpty()
-    RCard(Modifier.fillMaxWidth().height(150.dp), padding = PaddingValues(horizontal = 12.dp, vertical = 10.dp)) {
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+    RCard(Modifier.fillMaxWidth().height(CARD_HEIGHT), padding = PaddingValues(horizontal = 12.dp, vertical = 10.dp)) {
+        Row(verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             if (cls != null) ClassBadge(cls, 36.dp)
             else Box(Modifier.size(36.dp).clip(CircleShape).background(c.field), contentAlignment = Alignment.Center) {
                 Icon(if (atStart) Icons.Default.PlayArrow else Icons.Default.Edit, null, tint = c.muted, modifier = Modifier.size(18.dp))
             }
-            Column(Modifier.weight(1f), verticalArrangement = Arrangement.Center) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.weight(1f)) {
+                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.heightIn(min = 36.dp)) {
                     Text(title, style = MaterialTheme.typography.titleMedium, color = c.text, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false))
                     if (lostPercent != null) Text("−$lostPercent%", fontFamily = Mono, fontSize = 12.sp, color = c.muted, maxLines = 1, modifier = Modifier.padding(start = 8.dp))
                 }
                 if (note != null) Text(note, style = MaterialTheme.typography.bodySmall, color = c.muted, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                // What followed the move, when it went wrong. It starts with the move in the title, so it needs no label of its own.
+                if (played != null) PlayedLine(played, onPlayed)
             }
         }
-        Spacer(Modifier.height(10.dp))
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            if (best != null) LineRow(best, onBest, Modifier.weight(1f))
-            else if (bestPending) Box(Modifier.weight(1f).height(LINE_ROW).clip(RoundedCornerShape(12.dp)).background(c.button), contentAlignment = Alignment.Center) { Text("…", color = c.muted) }
-            if (played != null) LineRow(played, onPlayed, Modifier.weight(1f))
-        }
+        Spacer(Modifier.weight(1f))
+        if (best != null) LineRow(best, onBest, Modifier.fillMaxWidth())
+        else if (bestPending) Box(Modifier.fillMaxWidth().height(LINE_ROW).clip(RoundedCornerShape(12.dp)).background(c.button), contentAlignment = Alignment.Center) { Text("…", color = c.muted) }
     }
 }
 
-private val LINE_ROW = 72.dp
+/** The card's height, the same whatever it holds, so nothing below it moves from one move to the next. */
+private val CARD_HEIGHT = 172.dp
+
+/** The line that followed the move, as text with a play mark in front; tapping it plays it on the board. */
+@Composable
+private fun PlayedLine(choice: LineChoice, onClick: () -> Unit) {
+    val c = Palette.colors
+    val shape = RoundedCornerShape(8.dp)
+    Row(
+        Modifier.fillMaxWidth().padding(top = 2.dp).clip(shape).then(if (choice.on) Modifier.background(c.brandCard) else Modifier).clickable(onClick = onClick).padding(vertical = 2.dp),
+        verticalAlignment = Alignment.Top,
+    ) {
+        Icon(Icons.Default.PlayArrow, "Play this line", tint = if (choice.on) c.brandCardText else c.brand, modifier = Modifier.size(18.dp).padding(top = 1.dp))
+        Spacer(Modifier.width(4.dp))
+        Text(choice.line ?: "Tap to see how it goes", style = MaterialTheme.typography.bodySmall, color = if (choice.on) c.brandCardText else c.text, maxLines = 2, overflow = TextOverflow.Ellipsis)
+    }
+}
+
+private val LINE_ROW = 64.dp
 
 @Composable
-private fun LineRow(choice: LineChoice, onClick: () -> Unit, modifier: Modifier = Modifier) {
+private fun LineRow(choice: LineChoice, onClick: (() -> Unit)?, modifier: Modifier = Modifier) {
     val c = Palette.colors
     val shape = RoundedCornerShape(12.dp)
     val ink = if (choice.on) c.brandCardText else c.text
@@ -84,7 +102,7 @@ private fun LineRow(choice: LineChoice, onClick: () -> Unit, modifier: Modifier 
         modifier.height(LINE_ROW).clip(shape)
             .background(if (choice.on) c.brandCard else c.button)
             .border(1.dp, if (choice.on) c.brand else Color.Transparent, shape)
-            .clickable(onClick = onClick)
+            .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
             .padding(horizontal = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {

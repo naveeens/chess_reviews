@@ -64,6 +64,9 @@ android {
     buildFeatures {
         compose = true
     }
+    // The pictures the board scanner is tested on are shared between the unit tests and the on-device tests.
+    sourceSets.getByName("androidTest").assets.srcDir("src/test/shared")
+    sourceSets.getByName("test").resources.srcDir("src/test/shared")
     packaging {
         jniLibs {
             useLegacyPackaging = true

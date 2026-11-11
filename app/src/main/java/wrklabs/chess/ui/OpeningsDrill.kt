@@ -273,7 +273,7 @@ private fun ColumnScope.PractiseBody(entry: LessonEntry, settings: AppSettings) 
     }
     BoardBody(footer = {
         if (state.finished) ActionBar {
-            RButton("Play on against Maia", { PlayLaunch.request.value = PlayRequest(node.fen, entry.side == PieceColor.WHITE, null, "${entry.title}, the end of the line") }, Modifier.weight(1f), style = ButtonStyle.Tonal)
+            RButton("Play on", { PlayLaunch.request.value = PlayRequest(node.fen, entry.side == PieceColor.WHITE, null, "${entry.title}, the end of the line") }, Modifier.weight(1f), style = ButtonStyle.Tonal)
             RButton("Another line", session::another, Modifier.weight(1f), icon = Icons.AutoMirrored.Filled.ArrowForward)
         } else if (!showAnswer) ActionBar { RButton("Hint", { session.hint = true }, Modifier.fillMaxWidth(), style = ButtonStyle.Tonal) }
     }) {
@@ -327,6 +327,8 @@ private class ReviewSession(val items: List<ReviewItem>, private val record: (ca
     var selected by mutableStateOf<Square?>(null); private set
     var verdict by mutableStateOf(ReviewVerdict.Playing); private set
     var answered by mutableStateOf<MoveNode?>(null); private set
+    /** The move that was tried and was not the lesson's, as the card names it. */
+    var tried by mutableStateOf<String?>(null); private set
     var firstTryRight by mutableStateOf(0); private set
     private var tries = 0
 
@@ -347,6 +349,7 @@ private class ReviewSession(val items: List<ReviewItem>, private val record: (ca
             answered = match; verdict = ReviewVerdict.Right
         } else {
             if (tries == 0) record(i.cardId, false)
+            tried = legal.firstOrNull { it.from == from && it.to == to }?.san
             tries++; verdict = ReviewVerdict.Wrong
         }
     }
@@ -359,7 +362,7 @@ private class ReviewSession(val items: List<ReviewItem>, private val record: (ca
     }
 
     fun retry() { verdict = ReviewVerdict.Playing }
-    fun next() { index++; verdict = ReviewVerdict.Playing; answered = null; selected = null; tries = 0 }
+    fun next() { index++; verdict = ReviewVerdict.Playing; answered = null; selected = null; tries = 0; tried = null }
 }
 
 /** The positions you missed in practice, as one-move questions, until they stick. */
@@ -437,11 +440,13 @@ private fun ColumnScope.LineReview(lessons: List<LessonEntry>, due: List<DueLine
                     }
                 }
                 ReviewVerdict.Wrong -> {
-                    RCard(Modifier.fillMaxWidth(), color = c.danger.copy(alpha = 0.16f)) {
-                        Text("The lesson plays ${expected?.label().orEmpty()}.", style = MaterialTheme.typography.titleMedium, color = c.danger)
-                        expected?.comment?.takeIf { it.isNotBlank() }?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = c.muted) }
-                        Text("It comes back today.", style = MaterialTheme.typography.bodySmall, color = c.muted)
-                    }
+                    // The move that was tried, and the lesson's move beside it. There is no engine grade in a lesson.
+                    MoveCardView(
+                        atStart = false, san = session.tried, cls = null, lostPercent = null,
+                        note = "It comes back today.",
+                        best = expected?.let { e -> LineChoice("The lesson plays", e.signs(), listOfNotNull(e.label(), e.comment?.takeIf { it.isNotBlank() }).joinToString("  ")) },
+                        bestPending = false, played = null, onBest = null, onPlayed = {},
+                    )
                 }
             }
             Spacer(Modifier.height(16.dp))

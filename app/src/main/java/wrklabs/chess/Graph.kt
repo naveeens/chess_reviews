@@ -34,6 +34,8 @@ object Graph {
         private set
     lateinit var maia: MaiaEngine
         private set
+    lateinit var scanner: wrklabs.chess.scan.BoardScanner
+        private set
     lateinit var play: wrklabs.chess.play.PlayStore
         private set
     lateinit var pro: ProAccess
@@ -54,6 +56,7 @@ object Graph {
         engine = StockfishEngine(app)
         reviews = ReviewService(app, engine, games)
         maia = MaiaEngine(app)
+        scanner = wrklabs.chess.scan.BoardScanner(app)
         play = wrklabs.chess.play.PlayStore(kv)
         pro = ProAccess(app)
         billing = BillingManager(app, CoroutineScope(SupervisorJob() + Dispatchers.Main)) { pro.set(it) }.also { it.startConnection() }
@@ -66,6 +69,7 @@ object Graph {
         billing.endConnection()
         engine.destroy()
         maia.close()
+        scanner.close()
         ready = false
     }
 }

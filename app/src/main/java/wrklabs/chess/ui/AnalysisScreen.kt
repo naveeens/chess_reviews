@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.NavigateBefore
 import androidx.compose.material.icons.automirrored.filled.NavigateNext
 import androidx.compose.material.icons.filled.*
@@ -42,7 +43,7 @@ import wrklabs.chess.ui.theme.Palette
 
 /** The analysis board: move the pieces, see what the engine thinks. Reviewing a game is the review screen. */
 @Composable
-fun AnalysisScreen(vm: AnalysisViewModel, settings: AppSettings) {
+fun AnalysisScreen(vm: AnalysisViewModel, settings: AppSettings, onBack: () -> Unit = {}, onEdit: (String) -> Unit = {}) {
     val s by vm.state.collectAsState()
     val engineStatus by vm.engineStatus.collectAsState()
     var loadPgn by remember { mutableStateOf(false) }
@@ -66,8 +67,14 @@ fun AnalysisScreen(vm: AnalysisViewModel, settings: AppSettings) {
         val showBar = settings.analysisEngine && settings.showEvalBar
         val boardSize = maxWidth
         Column(Modifier.fillMaxSize()) {
-            PageHeader("Analyze", subtitle = info?.let { "${it.white} vs ${it.black}" })
-            val footer = @Composable { AnalysisToolbar(vm, onOptions = { options = true }, onLoadPgn = { loadPgn = true }, onLoadFen = { loadFen = true }, onCopyFen = { copyText(context, "FEN", vm.fen()) }, onCopyPgn = { copyText(context, "PGN", vm.pgn()) }) }
+            Row(Modifier.fillMaxWidth().padding(start = 4.dp, end = 8.dp, top = 6.dp, bottom = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+                IconTap(Icons.AutoMirrored.Filled.ArrowBack, "Back", onBack, size = 44)
+                Column(Modifier.weight(1f).padding(start = 4.dp)) {
+                    Text("Analysis board", style = MaterialTheme.typography.headlineSmall, color = c.text, maxLines = 1)
+                    info?.let { Text("${it.white} vs ${it.black}", style = MaterialTheme.typography.bodySmall, color = c.muted, maxLines = 1, overflow = TextOverflow.Ellipsis) }
+                }
+            }
+            val footer = @Composable { AnalysisToolbar(vm, onOptions = { options = true }, onLoadPgn = { loadPgn = true }, onLoadFen = { loadFen = true }, onCopyFen = { copyText(context, "FEN", vm.fen()) }, onCopyPgn = { copyText(context, "PGN", vm.pgn()) }, onEdit = { onEdit(vm.fen()) }) }
             // The board and what goes with it scroll on a phone too short for them; the toolbar stays.
             BoardBody(footer = footer) {
             BoardWithSeats(seat(topColor), seat(bottomColor), if (showBar) EvalBar(s.score, s.orientation) else null) {
@@ -136,7 +143,7 @@ private fun LoadPgnDialog(onDismiss: () -> Unit, onLoad: (String) -> Boolean) {
     )
 }
 
-private fun copyText(context: Context, label: String, text: String) {
+internal fun copyText(context: Context, label: String, text: String) {
     (context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager).setPrimaryClip(ClipData.newPlainText(label, text))
 }
 
@@ -230,7 +237,7 @@ private fun EngineRows(lines: List<EngineLine>, fen: String, status: wrklabs.che
 /** The same bar as on the review screen: the menu, flip, back and forward (a long press on either goes to the start or the end). */
 @OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
 @Composable
-private fun AnalysisToolbar(vm: AnalysisViewModel, onOptions: () -> Unit, onLoadPgn: () -> Unit, onLoadFen: () -> Unit, onCopyFen: () -> Unit, onCopyPgn: () -> Unit) {
+private fun AnalysisToolbar(vm: AnalysisViewModel, onOptions: () -> Unit, onLoadPgn: () -> Unit, onLoadFen: () -> Unit, onCopyFen: () -> Unit, onCopyPgn: () -> Unit, onEdit: () -> Unit) {
     val c = Palette.colors
     var menu by remember { mutableStateOf(false) }
     BoardToolbar {
@@ -239,6 +246,7 @@ private fun AnalysisToolbar(vm: AnalysisViewModel, onOptions: () -> Unit, onLoad
             DropdownMenu(menu, { menu = false }, containerColor = c.cardHigh) {
                 DropdownMenuItem(text = { Text("Analysis options…") }, leadingIcon = { Icon(Icons.Default.Tune, null) }, onClick = { menu = false; onOptions() })
                 DropdownMenuItem(text = { Text("Load PGN…") }, leadingIcon = { Icon(Icons.Default.UploadFile, null) }, onClick = { menu = false; onLoadPgn() })
+                DropdownMenuItem(text = { Text("Edit this position…") }, leadingIcon = { Icon(Icons.Default.GridOn, null) }, onClick = { menu = false; onEdit() })
                 DropdownMenuItem(text = { Text("Set up from FEN…") }, leadingIcon = { Icon(Icons.Default.Edit, null) }, onClick = { menu = false; onLoadFen() })
                 DropdownMenuItem(text = { Text("Copy FEN") }, leadingIcon = { Icon(Icons.Default.ContentCopy, null) }, onClick = { menu = false; onCopyFen() })
                 DropdownMenuItem(text = { Text("Copy PGN") }, leadingIcon = { Icon(Icons.Default.ContentCopy, null) }, onClick = { menu = false; onCopyPgn() })

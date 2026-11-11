@@ -39,10 +39,12 @@ object WhyLine {
     }
 
     /** The engine's line from `fen` as text, as far as it would be played out: [mover] is who plays its first move. */
-    fun lineText(fen: String, pv: List<String>, score: wrklabs.chess.engine.Score, mover: wrklabs.chess.engine.PieceColor, plies: Int): String {
-        val mating = (score as? wrklabs.chess.engine.Score.Mate)?.let { it.value != 0 && ((mover == wrklabs.chess.engine.PieceColor.WHITE) == (it.value > 0)) } == true
-        return sanLine(fen, plan(fen, pv, mating, plies).map { it.uci })
-    }
+    fun lineText(fen: String, pv: List<String>, score: wrklabs.chess.engine.Score, mover: wrklabs.chess.engine.PieceColor, plies: Int): String =
+        sanLine(fen, plan(fen, pv, isMating(score, mover), plies).map { it.uci })
+
+    /** Whether a White-POV score is a mate for [mover]: a line to mate is played to the end. */
+    fun isMating(score: wrklabs.chess.engine.Score, mover: wrklabs.chess.engine.PieceColor): Boolean =
+        (score as? wrklabs.chess.engine.Score.Mate)?.let { it.value != 0 && ((mover == wrklabs.chess.engine.PieceColor.WHITE) == (it.value > 0)) } == true
 
     /**
      * The first [plies] moves of the engine's line from `fen`, or fewer if the line is shorter or ends in checkmate.

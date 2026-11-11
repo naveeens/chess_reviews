@@ -49,11 +49,20 @@ sealed class TrainState {
         /** "Show why": the opponent's best reply is being played (or was), and what it came to. */
         val whyStarted: Boolean = false,
         val whyText: String? = null,
+        /** For a wrong answer, worked out once it is given: the engine's better line, and what followed the move that was played. */
+        val bestLine: String? = null,
+        val bestScore: Score? = null,
+        val playedLine: String? = null,
+        /** Which of the two lines is on the board. */
+        val lineOn: LineOn? = null,
         val lastMove: Pair<Square, Square>? = null,
         /** A pawn is on its way to the last rank and the piece to promote to is being asked. */
         val promotion: Pair<Square, Square>? = null
     ) : TrainState()
 }
+
+/** The two lines a wrong answer can show on the board. */
+enum class LineOn { Best, Played }
 
 enum class CardAnswerStatus {
     Unanswered,
@@ -214,17 +223,7 @@ class TrainViewModel(
     /** What the engine makes of each card's position before the move, worked out once at the depth the answers are judged at. */
     private val bestCache = mutableMapOf<String, ReviewedPosition>()
 
-    private suspend fun search(fen: String, depth: Int = JUDGE_DEPTH, ms: Long = JUDGE_MS): ReviewedPosition? {
-        val settings = wrklabs.chess.Graph.settings.value
-        val board = ChessBoard.fromFen(fen)
-        if (board.isCheckmate()) return ReviewedPosition(wrklabs.chess.engine.checkmatedScore(board.turn), null, emptyList())
-        if (board.isStalemate()) return ReviewedPosition(Score.Centipawns(0), null, emptyList())
-        val result = wrklabs.chess.Graph.engine.analyze(
-            AnalyzeRequest(fen = fen, multiPv = 1, depth = depth, movetime = ms),
-        )
-        val line = result?.lines?.firstOrNull() ?: return null
-        return ReviewedPosition(line.score, result.bestMove ?: line.pv.firstOrNull(), line.pv, null)
-    }
+    private suspend fun search(fen: String, depth: Int = JUDGE_DEPTH, ms: Long = JUDGE_MS): ReviewedPosition? = searchPosition(fen, depth, ms)
 
     /**
      * The engine's view of a move other than the stored best, by the same rules as the review. The position before and the
@@ -256,6 +255,7 @@ class TrainViewModel(
         _trainState.value = state.copy(board = board, selectedSquare = null, userPlayedMove = move, status = status, grade = judged.cls, loss = judged.loss)
         // A good move that isn't the best is not an answer yet: the card stays as it was.
         if (verdict == Verdict.Better) return
+        if (verdict == Verdict.Wrong) explain(state.card, move)
         viewModelScope.launch {
             cardRepository.recordResult(state.card.id, verdict == Verdict.Solved)
             _summary.value = cardRepository.getSummary()
@@ -263,31 +263,69 @@ class TrainViewModel(
     }
 
     private var whyJob: Job? = null
+    private var explainJob: Job? = null
 
-    /** "Show why" on a wrong answer: the opponent's best reply to it, played out on the board. */
-    fun showWhy() {
+    /** After a wrong answer: the engine's better line, and what follows the move that was played, as text for the card. */
+    private fun explain(card: MistakeCardPuzzle, move: Move) {
+        explainJob?.cancel()
+        explainJob = viewModelScope.launch {
+            val len = wrklabs.chess.Graph.settings.value.lineLength
+            val depth = WhyLine.depthFor(len, JUDGE_DEPTH)
+            val ms = WhyLine.msFor(len, JUDGE_MS)
+            val mover = if (card.fen.split(" ").getOrNull(1) == "b") PieceColor.BLACK else PieceColor.WHITE
+            fun update(change: (TrainState.Question) -> TrainState.Question) {
+                val now = _trainState.value as? TrainState.Question
+                if (now != null && now.card.id == card.id && now.status == CardAnswerStatus.Wrong) _trainState.value = change(now)
+            }
+            search(card.fen, depth, ms)?.let { best ->
+                val text = WhyLine.lineText(card.fen, best.pv, best.score, mover, len)
+                update { it.copy(bestLine = text, bestScore = best.score) }
+            }
+            val afterFen = ChessBoard.fromFen(card.fen).makeMove(move).toFen()
+            search(afterFen, depth, ms)?.let { after ->
+                val rest = WhyLine.plan(afterFen, after.pv, WhyLine.isMating(after.score, mover.opponent()), len).map { it.uci }
+                update { it.copy(playedLine = WhyLine.sanLine(card.fen, listOf(move.uci) + rest)) }
+            }
+        }
+    }
+
+    /** What followed the move that was played: the engine's best reply to it, played out on the board. */
+    fun showWhy() = playOut(LineOn.Played)
+
+    /** The engine's better line, played out from the position the answer was asked in. */
+    fun showBestLine() = playOut(LineOn.Best)
+
+    private fun playOut(on: LineOn) {
         val state = _trainState.value as? TrainState.Question ?: return
-        if (state.status != CardAnswerStatus.Wrong || state.whyStarted) return
-        _trainState.value = state.copy(whyStarted = true, whyText = null)
-        val startFen = state.board.toFen()
-        val mover = if (state.card.fen.split(" ").getOrNull(1) == "b") PieceColor.BLACK else PieceColor.WHITE
+        val move = state.userPlayedMove ?: return
+        if (state.status != CardAnswerStatus.Wrong) return
+        val card = state.card
+        val first = ChessBoard.fromFen(card.fen)
+        val start = if (on == LineOn.Best) first else first.makeMove(move)
+        val startFen = start.toFen()
+        val mover = if (startFen.split(" ").getOrNull(1) == "b") PieceColor.BLACK else PieceColor.WHITE
+        _trainState.value = state.copy(
+            board = start, selectedSquare = null, whyStarted = true, whyText = null, lineOn = on,
+            lastMove = if (on == LineOn.Played) move.from to move.to else card.opponentMove(),
+        )
         whyJob?.cancel()
         whyJob = viewModelScope.launch {
             val len = wrklabs.chess.Graph.settings.value.lineLength
             val position = search(startFen, WhyLine.depthFor(len, JUDGE_DEPTH), WhyLine.msFor(len, JUDGE_MS))
             fun update(change: (TrainState.Question) -> TrainState.Question) {
                 val now = _trainState.value as? TrainState.Question
-                if (now != null && now.card.id == state.card.id && now.whyStarted) _trainState.value = change(now)
+                if (now != null && now.card.id == card.id && now.lineOn == on) _trainState.value = change(now)
             }
             if (position == null) { update { it.copy(whyText = "The engine had nothing to add here.") }; return@launch }
-            var board = state.board
-            for ((i, move) in WhyLine.plan(startFen, position.pv, plies = wrklabs.chess.Graph.settings.value.lineLength).withIndex()) {
+            var board = start
+            val plan = WhyLine.plan(startFen, position.pv, WhyLine.isMating(position.score, mover), len)
+            for ((i, m) in plan.withIndex()) {
                 kotlinx.coroutines.delay(if (i == 0) 500 else WhyLine.PLY_MS)
-                if ((_trainState.value as? TrainState.Question)?.whyStarted != true) return@launch
-                board = board.makeMove(move)
+                if ((_trainState.value as? TrainState.Question)?.lineOn != on) return@launch
+                board = board.makeMove(m)
                 SoundPlayer.playMove()
                 val b = board
-                update { it.copy(board = b, lastMove = move.from to move.to) }
+                update { it.copy(board = b, lastMove = m.from to m.to) }
             }
         }
     }
@@ -301,6 +339,7 @@ class TrainViewModel(
     fun nextCard() {
         checkJob?.cancel()
         whyJob?.cancel()
+        explainJob?.cancel()
         _currentIndex.value += 1
         showCurrentCard()
     }
@@ -308,6 +347,7 @@ class TrainViewModel(
     fun retryCurrentCard() {
         checkJob?.cancel()
         whyJob?.cancel()
+        explainJob?.cancel()
         val state = _trainState.value as? TrainState.Question ?: return
         val originalBoard = ChessBoard.fromFen(state.card.fen)
         _trainState.value = state.copy(
@@ -320,6 +360,7 @@ class TrainViewModel(
             loss = 0.0,
             whyStarted = false,
             whyText = null,
+            bestLine = null, bestScore = null, playedLine = null, lineOn = null,
             lastMove = state.card.opponentMove()
         )
     }
@@ -328,3 +369,13 @@ class TrainViewModel(
 /** The squares of the opponent's move that led to this card's position: what en passant, a check or a recapture hangs on. */
 private fun MistakeCardPuzzle.opponentMove(): Pair<Square, Square>? =
     prevUci?.takeIf { it.length >= 4 }?.let { Square.fromName(it.substring(0, 2)) to Square.fromName(it.substring(2, 4)) }
+
+/** What the engine makes of a position: its score, its best move and its line. A mate or a stalemate is answered without a search. */
+internal suspend fun searchPosition(fen: String, depth: Int = JUDGE_DEPTH, ms: Long = JUDGE_MS): ReviewedPosition? {
+    val board = ChessBoard.fromFen(fen)
+    if (board.isCheckmate()) return ReviewedPosition(wrklabs.chess.engine.checkmatedScore(board.turn), null, emptyList())
+    if (board.isStalemate()) return ReviewedPosition(Score.Centipawns(0), null, emptyList())
+    val result = wrklabs.chess.Graph.engine.analyze(AnalyzeRequest(fen = fen, multiPv = 1, depth = depth, movetime = ms))
+    val line = result?.lines?.firstOrNull() ?: return null
+    return ReviewedPosition(line.score, result.bestMove ?: line.pv.firstOrNull(), line.pv, null)
+}

@@ -15,6 +15,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Analytics
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.automirrored.filled.Sort
 import androidx.compose.material.icons.filled.ArrowDropDown
@@ -35,7 +36,7 @@ import wrklabs.chess.settings.AppSettings
 import wrklabs.chess.ui.theme.Palette
 
 @Composable
-fun GamesScreen(vm: GamesViewModel, settings: AppSettings, onOpen: (GameItem) -> Unit, onOpenSettings: () -> Unit) {
+fun GamesScreen(vm: GamesViewModel, settings: AppSettings, onOpen: (GameItem) -> Unit, onOpenSettings: () -> Unit, onOpenAnalysis: () -> Unit = {}) {
     val state by vm.state.collectAsState()
     val c = Palette.colors
     LaunchedEffect(Unit) { vm.reload() }
@@ -50,6 +51,7 @@ fun GamesScreen(vm: GamesViewModel, settings: AppSettings, onOpen: (GameItem) ->
             subtitle = if (settings.hasAccounts) (if (state.items.isNotEmpty()) "%,d games · ".format(state.items.size) else "") + listOf(settings.chesscomUser, settings.lichessUser).filter { it.isNotBlank() }.joinToString(" · ")
             else if (state.items.isNotEmpty()) "%,d games".format(state.items.size) else null,
             actions = {
+                IconTap(Icons.Default.Analytics, "Analysis board", onOpenAnalysis)
                 if (state.items.isNotEmpty()) {
                     IconTap(Icons.Default.Search, "Search games", { searching = !searching; if (!searching) vm.setQuery { copy(search = "") } })
                     Box {
