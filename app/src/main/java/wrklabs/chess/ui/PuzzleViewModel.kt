@@ -197,13 +197,13 @@ class PuzzleViewModel(
                 if (now != null && now.card.puzzle.id == q.card.puzzle.id && now.whyStarted) _state.value = change(now)
             }
             val result = wrklabs.chess.Graph.engine.analyze(
-                wrklabs.chess.engine.AnalyzeRequest(fen = startFen, multiPv = 1, depth = JUDGE_DEPTH, movetime = JUDGE_MS),
+                wrklabs.chess.engine.AnalyzeRequest(fen = startFen, multiPv = 1, depth = WhyLine.depthFor(wrklabs.chess.Graph.settings.value.lineLength, JUDGE_DEPTH), movetime = WhyLine.msFor(wrklabs.chess.Graph.settings.value.lineLength, JUDGE_MS)),
             )
             val line = result?.lines?.firstOrNull()
             if (line == null) { update { it.copy(whyText = "The engine had nothing to add here.") }; return@launch }
             var board = after
-            for ((i, move) in WhyLine.plan(startFen, line.pv).withIndex()) {
-                delay(if (i == 0) 500 else 900)
+            for ((i, move) in WhyLine.plan(startFen, line.pv, plies = wrklabs.chess.Graph.settings.value.lineLength).withIndex()) {
+                delay(if (i == 0) 500 else WhyLine.PLY_MS)
                 if ((_state.value as? PuzzleState.Question)?.whyStarted != true) return@launch
                 board = board.makeMove(move)
                 SoundPlayer.playMove()

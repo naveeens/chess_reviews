@@ -214,13 +214,13 @@ class TrainViewModel(
     /** What the engine makes of each card's position before the move, worked out once at the depth the answers are judged at. */
     private val bestCache = mutableMapOf<String, ReviewedPosition>()
 
-    private suspend fun search(fen: String): ReviewedPosition? {
+    private suspend fun search(fen: String, depth: Int = JUDGE_DEPTH, ms: Long = JUDGE_MS): ReviewedPosition? {
         val settings = wrklabs.chess.Graph.settings.value
         val board = ChessBoard.fromFen(fen)
         if (board.isCheckmate()) return ReviewedPosition(wrklabs.chess.engine.checkmatedScore(board.turn), null, emptyList())
         if (board.isStalemate()) return ReviewedPosition(Score.Centipawns(0), null, emptyList())
         val result = wrklabs.chess.Graph.engine.analyze(
-            AnalyzeRequest(fen = fen, multiPv = 1, depth = JUDGE_DEPTH, movetime = JUDGE_MS),
+            AnalyzeRequest(fen = fen, multiPv = 1, depth = depth, movetime = ms),
         )
         val line = result?.lines?.firstOrNull() ?: return null
         return ReviewedPosition(line.score, result.bestMove ?: line.pv.firstOrNull(), line.pv, null)
@@ -273,15 +273,16 @@ class TrainViewModel(
         val mover = if (state.card.fen.split(" ").getOrNull(1) == "b") PieceColor.BLACK else PieceColor.WHITE
         whyJob?.cancel()
         whyJob = viewModelScope.launch {
-            val position = search(startFen)
+            val len = wrklabs.chess.Graph.settings.value.lineLength
+            val position = search(startFen, WhyLine.depthFor(len, JUDGE_DEPTH), WhyLine.msFor(len, JUDGE_MS))
             fun update(change: (TrainState.Question) -> TrainState.Question) {
                 val now = _trainState.value as? TrainState.Question
                 if (now != null && now.card.id == state.card.id && now.whyStarted) _trainState.value = change(now)
             }
             if (position == null) { update { it.copy(whyText = "The engine had nothing to add here.") }; return@launch }
             var board = state.board
-            for ((i, move) in WhyLine.plan(startFen, position.pv).withIndex()) {
-                kotlinx.coroutines.delay(if (i == 0) 500 else 900)
+            for ((i, move) in WhyLine.plan(startFen, position.pv, plies = wrklabs.chess.Graph.settings.value.lineLength).withIndex()) {
+                kotlinx.coroutines.delay(if (i == 0) 500 else WhyLine.PLY_MS)
                 if ((_trainState.value as? TrainState.Question)?.whyStarted != true) return@launch
                 board = board.makeMove(move)
                 SoundPlayer.playMove()

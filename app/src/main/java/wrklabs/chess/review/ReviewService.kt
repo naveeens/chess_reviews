@@ -117,7 +117,16 @@ class ReviewService(
         StoredReview(report, withVerdicts)
     }
 
+    /** Positions already looked at, with how deep: a game being played is analysed as it goes, and its review reuses them. */
+    private val looked = object : LinkedHashMap<String, Pair<Int, ReviewedPosition>>(256, 0.75f, true) {
+        override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, Pair<Int, ReviewedPosition>>?) = size > LOOKED_MAX
+    }
+
+    /** The engine's view of a position, from the cache when it has looked at least this deep before. */
+    suspend fun position(fen: String, depth: Int, moveMs: Long): ReviewedPosition = evaluate(fen, depth, moveMs)
+
     private suspend fun evaluate(fen: String, depth: Int, moveMs: Long): ReviewedPosition {
+        synchronized(looked) { looked[fen] }?.let { (d, p) -> if (d >= depth) return p }
         val board = ChessBoard.fromFen(fen)
         if (board.isCheckmate()) return ReviewedPosition(checkmatedScore(board.turn), null, emptyList())
         if (board.isStalemate()) return ReviewedPosition(Score.Centipawns(0), null, emptyList())
@@ -125,6 +134,7 @@ class ReviewService(
         val lines = result?.lines.orEmpty()
         val top = lines.firstOrNull() ?: return ReviewedPosition(Score.Centipawns(0), null, emptyList())
         return ReviewedPosition(top.score, result?.bestMove ?: top.pv.firstOrNull(), top.pv, lines.getOrNull(1)?.score)
+            .also { synchronized(looked) { looked[fen] = depth to it } }
     }
 
     private suspend fun save(info: GameInfo, mainline: List<MoveNode>, report: GameReport, book: OpeningsBook) {
@@ -166,6 +176,7 @@ class ReviewService(
     }
 
     companion object {
+        private const val LOOKED_MAX = 400
         /** Reviews saved under an older value are made again, so a change to the grading reaches games already reviewed. */
         const val VERSION = MoveClassifier.RULES_VERSION
 

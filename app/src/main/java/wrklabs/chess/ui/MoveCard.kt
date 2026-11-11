@@ -25,12 +25,13 @@ import wrklabs.chess.classifier.MoveClass
 import wrklabs.chess.ui.theme.Mono
 import wrklabs.chess.ui.theme.Palette
 
-/** The engine's better move, as the card's button offers it. */
-data class BestChoice(val label: String, val san: String, val eval: String, val on: Boolean = false)
+/** One of the card's two lines to look at: what it is called, a word on the right, and the line itself as text. */
+data class LineChoice(val title: String, val trailing: String, val line: String?, val on: Boolean = false)
 
 /**
- * What happened on the move being looked at, the same card on the review and the analysis screens: the move and its grade,
- * the loss, a line of news if there is one, the engine's better move and, for a move that went wrong, "Show why".
+ * What happened on the move being looked at, on the review screen: the move and its grade, the loss, a line of news if there
+ * is one, then the engine's better line ("Best") and, for a move that went wrong, the line that followed the move that was
+ * played ("Played"). Tapping a line plays it on the board.
  */
 @Composable
 fun MoveCardView(
@@ -39,17 +40,16 @@ fun MoveCardView(
     cls: MoveClass?,
     lostPercent: Int?,
     note: String?,
-    best: BestChoice?,
+    best: LineChoice?,
     bestPending: Boolean,
-    /** The button's words ("Show why", "What you missed"), or null when the move has nothing to explain. */
-    whyLabel: String?,
-    whyActive: Boolean,
+    /** For a move that went wrong; null when the move has nothing to explain. */
+    played: LineChoice?,
     onBest: () -> Unit,
-    onWhy: () -> Unit,
+    onPlayed: () -> Unit,
 ) {
     val c = Palette.colors
     val title = if (atStart) "Start of the game" else if (cls != null) "$san · ${cls.label}" else san.orEmpty()
-    RCard(Modifier.fillMaxWidth().height(112.dp), padding = PaddingValues(horizontal = 12.dp, vertical = 10.dp)) {
+    RCard(Modifier.fillMaxWidth().height(150.dp), padding = PaddingValues(horizontal = 12.dp, vertical = 10.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             if (cls != null) ClassBadge(cls, 36.dp)
             else Box(Modifier.size(36.dp).clip(CircleShape).background(c.field), contentAlignment = Alignment.Center) {
@@ -64,35 +64,36 @@ fun MoveCardView(
             }
         }
         Spacer(Modifier.height(10.dp))
-        Row(Modifier.fillMaxWidth().height(40.dp), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-            val shape = RoundedCornerShape(12.dp)
-            if (best != null) {
-                Box(
-                    Modifier.weight(1f).fillMaxHeight().clip(shape)
-                        .background(if (best.on) c.brandCard else c.button)
-                        .border(1.dp, if (best.on) c.brand else Color.Transparent, shape)
-                        .clickable(onClick = onBest)
-                        .padding(horizontal = 10.dp),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
-                        Text("${best.label} · ${best.san}", style = MaterialTheme.typography.labelLarge, color = if (best.on) c.brandCardText else c.text, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false))
-                        Text(best.eval, fontFamily = Mono, fontSize = 11.sp, color = if (best.on) c.brandCardText else c.muted, maxLines = 1, modifier = Modifier.padding(start = 6.dp))
-                    }
-                }
-            } else if (bestPending) {
-                Box(Modifier.weight(1f).fillMaxHeight().clip(shape).background(c.button), contentAlignment = Alignment.Center) { Text("…", color = c.muted) }
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            if (best != null) LineRow(best, onBest, Modifier.weight(1f))
+            else if (bestPending) Box(Modifier.weight(1f).height(LINE_ROW).clip(RoundedCornerShape(12.dp)).background(c.button), contentAlignment = Alignment.Center) { Text("…", color = c.muted) }
+            if (played != null) LineRow(played, onPlayed, Modifier.weight(1f))
+        }
+    }
+}
+
+private val LINE_ROW = 72.dp
+
+@Composable
+private fun LineRow(choice: LineChoice, onClick: () -> Unit, modifier: Modifier = Modifier) {
+    val c = Palette.colors
+    val shape = RoundedCornerShape(12.dp)
+    val ink = if (choice.on) c.brandCardText else c.text
+    val soft = if (choice.on) c.brandCardText else c.muted
+    Row(
+        modifier.height(LINE_ROW).clip(shape)
+            .background(if (choice.on) c.brandCard else c.button)
+            .border(1.dp, if (choice.on) c.brand else Color.Transparent, shape)
+            .clickable(onClick = onClick)
+            .padding(horizontal = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Column(Modifier.weight(1f)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(choice.title, style = MaterialTheme.typography.labelLarge, color = ink, maxLines = 1, modifier = Modifier.weight(1f))
+                if (choice.trailing.isNotEmpty()) Text(choice.trailing, fontFamily = Mono, fontSize = 11.sp, color = soft, maxLines = 1, modifier = Modifier.padding(start = 6.dp))
             }
-            if (whyLabel != null) {
-                Row(
-                    Modifier.weight(1f).fillMaxHeight().clip(shape).background(if (whyActive) c.brandCard else c.button).clickable(onClick = onWhy),
-                    verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center,
-                ) {
-                    Icon(Icons.Default.Lightbulb, null, tint = if (whyActive) c.brandCardText else c.text, modifier = Modifier.size(16.dp))
-                    Spacer(Modifier.width(6.dp))
-                    Text(whyLabel, style = MaterialTheme.typography.labelLarge, color = if (whyActive) c.brandCardText else c.text, maxLines = 1)
-                }
-            }
+            Text(choice.line ?: "Tap to see how it goes", style = MaterialTheme.typography.bodySmall, color = soft, maxLines = 2, overflow = TextOverflow.Ellipsis)
         }
     }
 }

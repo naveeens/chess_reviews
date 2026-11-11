@@ -32,7 +32,23 @@ object Pace {
     const val START_LEVEL = 3
     fun load(context: Context, key: String) = context.getSharedPreferences(FILE, Context.MODE_PRIVATE).getInt("pace_$key", START_LEVEL).coerceIn(0, top)
     fun save(context: Context, key: String, level: Int) = context.getSharedPreferences(FILE, Context.MODE_PRIVATE).edit().putInt("pace_$key", level).apply()
+
+    /** How many scores of past sets are kept per drill. */
+    const val HISTORY = 5
+
+    /** [history] with [score] added at the end, oldest dropped. */
+    fun pushed(history: List<Int>, score: Int): List<Int> = (history + score).takeLast(HISTORY)
+
+    /** Scores of the last sets of a drill, oldest first. */
+    fun history(context: Context, key: String): List<Int> =
+        (context.getSharedPreferences(FILE, Context.MODE_PRIVATE).getString("hist_$key", "") ?: "").split(",").mapNotNull { it.toIntOrNull() }.takeLast(HISTORY)
+
+    fun saveHistory(context: Context, key: String, history: List<Int>) =
+        context.getSharedPreferences(FILE, Context.MODE_PRIVATE).edit().putString("hist_$key", history.joinToString(",")).apply()
 }
+
+/** One answered problem: what was asked, whether it was right, whether the clock ran out, and how long it took. */
+class Attempt<T>(val problem: T, val right: Boolean, val late: Boolean, val ms: Long)
 
 /**
  * One set of problems, each asked once. A wrong or late answer shows the right one and the set
@@ -53,8 +69,12 @@ class TimedRun<T>(val size: Int, make: () -> T) {
     var seen = 0
         private set
 
-    fun answer(right: Boolean) {
-        queue.removeFirst()
+    private val log = mutableListOf<Attempt<T>>()
+    /** Every answered problem, in the order asked. */
+    val attempts: List<Attempt<T>> get() = log
+
+    fun answer(right: Boolean, late: Boolean = false, ms: Long = 0) {
+        log += Attempt(queue.removeFirst(), right, late, ms)
         seen++
         if (right) firstTry++ else missed++
     }

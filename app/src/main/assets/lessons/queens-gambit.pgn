@@ -9,38 +9,113 @@
 [Learn "white"]
 
 { The Queen's Gambit. White offers a wing pawn to pull Black's d-pawn away from the centre. If Black takes it, White gets the pawn back and keeps the better centre. You play White. }
-1. d4 $10 { [%eval 0.22] } 1... d5 $14 { [%eval 0.29] } 2. c4
-{ [%eval 0.29] [%cal Gc4d5] Attacks d5. It is a gambit in name only: after ...dxc4 White can win the pawn back. }
+1. d4 $10
+{ [%eval 0.22] White takes space in the centre and opens the bishop on c1. The pawn is protected by the queen. }
+1... d5 $14
+{ [%eval 0.29] Black takes the same share of the centre and blocks the pawn. }
+2. c4
+{ [%eval 0.29] [%cal Gc4d5] The Queen's Gambit. White offers the c-pawn to pull Black's d5 pawn away from the centre. It is a gambit in name only: if Black takes, White wins the pawn back and gets a bigger centre. }
 2... e6
-{ [%eval 0.28] The Queen's Gambit Declined. Black keeps the centre but accepts a passive bishop on c8. }
+{ [%eval 0.28] The Queen's Gambit Declined. Black holds d5 solidly and prepares to develop ...Nf6, ...Be7 and castle. The price is the bishop on c8, which is shut in behind the pawn on e6. Freeing it is Black's main task. }
 ( 2... dxc4
 { [%eval 0.29] The Queen's Gambit Accepted. Black takes the pawn, and White will win it back. }
-3. Nf3 { [%eval 0.27] } 3... Nf6 { [%eval 0.25] } 4. e3 { [%eval 0.29] } 4...
-e6 { [%eval 0.36] } 5. Bxc4 { [%eval 0.32] } 5... c5 { [%eval 0.29] } 6. O-O
-{ [%eval 0.28] } 6... a6 { [%eval 0.34] } 7. a4 { [%eval 0.25] } 7... Nc6
-{ [%eval 0.27] } 8. Qe2 { [%eval 0.26] } 8... cxd4 { [%eval 0.33] } 9. Rd1
-{ [%eval 0.32] } 9... Be7 { [%eval 0.30] } 10. exd4 { [%eval 0.33] } 10... O-O
-{ [%eval 0.36] } 11. Nc3 { [%eval 0.29] } 11... Nb4
+3. Nf3
+{ [%eval 0.27] The Queen's Gambit Accepted. White does not rush to win the pawn back: develop first, then recapture with a gain of time. Black can never keep the pawn, because ...b5 is met by a4. }
+3... Nf6 { [%eval 0.25] Black develops and stops White from playing e4. } 4. e3
+{ [%eval 0.29] Opens the f1 bishop to take back on c4, and secures the centre. }
+4... e6
+{ [%eval 0.36] Black opens the bishop on f8 and supports the centre. The pawn on c4 cannot be kept. }
+5. Bxc4
+{ [%eval 0.32] White wins the pawn back with a good diagonal for the bishop, aimed at f7 and the kingside. The gambit was never a real sacrifice, and White also has the better centre. }
+5... c5
+{ [%eval 0.29] Black hits d4 at once. This is the standard plan in the Queen's Gambit Accepted: Black gave the pawn back to attack White's centre, and now wants to trade it off. }
+6. O-O
+{ [%eval 0.28] White castles and is ready to meet ...cxd4 with exd4 or Nxd4. }
+6... a6
+{ [%eval 0.34] A flexible waiting move that prepares ...b5 to kick the bishop on c4 and gain space. }
+7. a4
+{ [%eval 0.25] Stops ...b5, which would gain space and tempo on the bishop. }
+7... Nc6 { [%eval 0.27] Black develops and adds another attacker on d4. } 8.
+Qe2
+{ [%eval 0.26] White develops the queen and connects the rooks. It supports the bishop and the pawn on e3. }
+8... cxd4
+{ [%eval 0.33] Black opens the c-file and removes White's centre pawn. } 9. Rd1
+{ [%eval 0.32] The rook takes the d-file and prepares to recapture on d4. }
+9... Be7
+{ [%eval 0.30] Black develops the last minor piece and prepares to castle. }
+10. exd4
+{ [%eval 0.33] White recaptures with the pawn, which leaves an isolated pawn on d4. In return White gets open lines and easy piece play. }
+10... O-O
+{ [%eval 0.36] Black castles and the king is safe. Both sides have developed everything: White has an isolated pawn on d4, but gets active pieces and open lines in return. This is the typical structure of the line. }
+11. Nc3
+{ [%eval 0.29] White brings the last knight to the centre, where it covers d5 and e4. }
+11... Nb4
 { [%eval 0.29] A common setup. White has a lead in development and good piece play. }
 ) ( 2... c6
-{ [%eval 0.30] The Slav. Black supports d5 with a pawn and keeps the bishop free to come out to f5. }
-3. Nf3 { [%eval 0.26] } 3... Nf6 { [%eval 0.29] } 4. Nc3 { [%eval 0.26] } 4...
-dxc4 { [%eval 0.29] } 5. a4
-{ [%eval 0.33] [%cal Ga4b5] Stops ...b5, so Black cannot keep the pawn. } 5...
-Bf5 { [%eval 0.43] } 6. e3 { [%eval 0.25] } 6... e6 { [%eval 0.26] } 7. Bxc4
-{ [%eval 0.26] } 7... Bb4 { [%eval 0.28] } 8. O-O { [%eval 0.35] } 8... Nbd7
-{ [%eval 0.40] } 9. Qe2 { [%eval 0.34] } 9... Bg6 { [%eval 0.41] } 10. e4
-{ [%eval 0.35] } 10... O-O { [%eval 0.45] } 11. Bd3 { [%eval 0.35] } 11... Bh5
-{ [%eval 0.42] } ) 3. Nc3 { [%eval 0.26] } 3... Nf6 { [%eval 0.30] } 4. Bg5
-{ [%eval 0.28] [%cal Gg5f6] Pins the knight, so Black's d5 pawn is harder to defend. }
-4... Be7 { [%eval 0.28] } 5. e3 { [%eval 0.27] } 5... O-O { [%eval 0.25] } 6.
-Nf3 { [%eval 0.25] } 6... h6 { [%eval 0.30] } 7. Bh4 $10 { [%eval 0.14] } 7...
-b6
-{ [%eval 0.17] The Tartakower Variation. Black plans ...Bb7 and ...dxc4 at the right moment. }
-8. cxd5 { [%eval 0.09] } 8... Nxd5 { [%eval 0.07] } 9. Bxe7 { [%eval -0.02] }
-9... Qxe7 { [%eval 0.08] } 10. Nxd5 { [%eval 0.10] } 10... exd5
-{ [%eval 0.03] } 11. Rc1
+{ [%eval 0.30] The Slav. Black holds d5 with a pawn and keeps the c8 bishop free to come out to f5 before ...e6. It is solid and one of the most popular answers to the Queen's Gambit. }
+3. Nf3 { [%eval 0.26] White develops and controls e5 and d4. } 3... Nf6
+{ [%eval 0.29] Black develops and guards d5 with a second piece. } 4. Nc3
+{ [%eval 0.26] White develops and puts a second piece on d5. } 4... dxc4
+{ [%eval 0.29] Black takes the pawn. Now the pawn on c6 can support ...b5 to keep the extra pawn, so White has to react at once with a4, to stop it. }
+5. a4 { [%eval 0.33] [%cal Ga4b5] Stops ...b5, so Black cannot keep the pawn. }
+5... Bf5
+{ [%eval 0.43] The point of the Slav. The c8 bishop comes out before ...e6, and it watches the e4 square. }
+6. e3
+{ [%eval 0.25] Opens the f1 bishop to take back on c4 and secures the centre. }
+6... e6 { [%eval 0.26] Black frees the f8 bishop so that it can develop. } 7.
+Bxc4
+{ [%eval 0.26] White takes the pawn back. The bishop lands on a good diagonal aimed at the kingside. }
+7... Bb4
+{ [%eval 0.28] The bishop pins the knight on c3 to the king, which makes e4 harder for White. }
+8. O-O
+{ [%eval 0.35] White castles, which gets the king safe and unpins the knight. }
+8... Nbd7
+{ [%eval 0.40] Black develops the last minor piece and covers e5, so White cannot easily play Ne5. }
+9. Qe2
+{ [%eval 0.34] White develops the queen and prepares e4, with the pawn supported by the queen. }
+9... Bg6 { [%eval 0.41] The bishop steps back to g6 before e4 can attack it. }
+10. e4
+{ [%eval 0.35] White takes the centre at last. The pawn is supported by the knights and the queen. }
+10... O-O { [%eval 0.45] Black castles and the king is safe. } 11. Bd3
+{ [%eval 0.35] Offers to trade the bishops, and the bishop is well placed on d3. }
+11... Bh5
+{ [%eval 0.42] Black avoids the trade and pins the knight on f3 to the queen. }
+) 3. Nc3 { [%eval 0.26] White develops a knight and adds more pressure on d5. }
+3... Nf6 { [%eval 0.30] Black develops and defends d5 a second time. } 4. Bg5
+{ [%eval 0.28] [%cal Gg5f6] Pins the knight to the queen, which loosens Black's grip on d5 and so on the whole centre. Black's usual answer is ...Be7. A knight on f6 with a bishop on g5 is a very common picture in the Queen's Gambit. }
+4... Be7
+{ [%eval 0.28] Breaks the pin by putting a piece behind the knight, and gets ready to castle. Black must not rush ...dxc4 or ...Ne4 here without a plan, since White's bishop keeps pressure on e7. }
+5. e3 { [%eval 0.27] Solidifies d4 and opens the f1 bishop. } 5... O-O
+{ [%eval 0.25] Black castles. The king is safe and the rook comes toward the centre. }
+6. Nf3 { [%eval 0.25] White develops the last knight, which guards d4 and e5. }
+6... h6
+{ [%eval 0.30] The pawn asks the bishop what it wants. It can retreat to h4 or trade on f6. }
+7. Bh4 $10
+{ [%eval 0.14] The bishop keeps the pin on the knight. A trade on f6 would help Black, who has less space. }
+7... b6
+{ [%eval 0.17] The Tartakower Variation. Black plans ...Bb7 to free the bishop, and ...dxc4 at the right moment. A good way to remember it: the bishop comes out and the pawn exchange follows. }
+8. cxd5
+{ [%eval 0.09] White settles the tension. Capturing at once stops ...dxc4, which would win a tempo on the bishop, and it leaves an open c-file for both sides, where the rooks will want to go. }
+8... Nxd5
+{ [%eval 0.07] Black recaptures and heads for trades. The knight attacks the knight on c3 and the pawn on e3. }
+9. Bxe7
+{ [%eval -0.02] White trades the dark-squared bishops so the knight on d5 cannot make the pin worse. }
+9... Qxe7
+{ [%eval 0.08] Black recaptures with the queen, which now eyes the e-file. }
+10. Nxd5
+{ [%eval 0.10] White trades off Black's active knight and forces Black to recapture with the e-pawn. }
+10... exd5
+{ [%eval 0.03] Opens the diagonal for the c8 bishop, which is free at last. Black's pawn on d5 is now a target. }
+11. Rc1
 { [%eval 0.07] [%cal Gc1c8] White takes the open file. Black's bishop on c8 is still the problem piece. }
-11... Be6 { [%eval 0.12] } 12. Qa4 { [%eval -0.02] } 12... c5 { [%eval -0.03] }
-13. Qa3 { [%eval -0.10] } 13... Rc8 { [%eval -0.10] } *
-
+11... Be6
+{ [%eval 0.12] Black finally develops the bishop and protects the pawn on d5. }
+12. Qa4
+{ [%eval -0.02] The queen eyes the a7 pawn and prepares Qa3 to meet ...c5. }
+12... c5
+{ [%eval -0.03] Black challenges White's d4 pawn and frees the queen's side. }
+13. Qa3
+{ [%eval -0.10] The queen attacks the pawn on c5, putting pressure on Black's centre. }
+13... Rc8
+{ [%eval -0.10] The rook defends c5 and takes the open file against White's rook on c1. }
+*

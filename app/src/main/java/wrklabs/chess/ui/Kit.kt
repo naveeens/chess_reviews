@@ -192,3 +192,12 @@ fun Modifier.bleed(by: androidx.compose.ui.unit.Dp): Modifier = this.layout { me
     val placeable = measurable.measure(constraints.copy(minWidth = constraints.minWidth + 2 * extra, maxWidth = constraints.maxWidth + 2 * extra))
     layout(placeable.width - 2 * extra, placeable.height) { placeable.placeRelative(-extra, 0) }
 }
+
+/**
+ * The strip pinned at the bottom of a training screen: the way on, one primary button, with the smaller ones beside it.
+ * Give each button `Modifier.weight(1f)` (or `fillMaxWidth()` for one).
+ */
+@Composable
+fun ActionBar(content: @Composable RowScope.() -> Unit) {
+    Row(Modifier.fillMaxWidth().padding(start = 14.dp, end = 14.dp, top = 8.dp, bottom = 4.dp), horizontalArrangement = Arrangement.spacedBy(8.dp), content = content)
+}

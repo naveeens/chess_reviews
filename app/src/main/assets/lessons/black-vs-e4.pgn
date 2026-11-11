@@ -1,0 +1,149 @@
+[Event "Black against 1.e4 e5"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[ECO "C44"]
+[Learn "black"]
+
+{ Black against 1.e4 e5. You answer 1.e4 with ...e5 and meet the Italian, the Three Knights, the Scotch, the Vienna and the Bishop's Opening. In each, aim for quick development, an equal share of the centre and a safe king. You play Black. }
+1. e4
+{ [%eval 0.34] White takes space in the centre and opens lines for the queen and the f1 bishop. Black does not need to copy it to be fine, but ...e5 is the most direct reply. }
+1... e5
+{ [%eval 0.37] [%cal Ge7e5] Black claims an equal share of the centre. Most of the openings you will meet as Black start from this reply. }
+2. Nf3
+{ [%eval 0.36] Develops a knight and attacks the pawn on e5. By far the most common move. }
+( 2. Nc3
+{ [%eval 0.11] The Vienna. White develops without committing the f1 knight, and keeps ideas of f4 in hand. }
+2... Nf6 { [%eval 0.10] Develops and attacks e4. } 3. f4
+{ [%eval -0.26] The Vienna Gambit. White uses the open f-file at the cost of a pawn. }
+( 3. Bc4 { [%eval -0.05] The Vienna with Bc4. White aims at f7 again. } 3...
+Nxe4
+{ [%eval 0.13] The right reply. Black takes the pawn and invites 4.Nxe4 d5, which wins a tempo for Black. }
+4. Qh5 { [%eval 0.07] White threatens f7 with the queen and the bishop. } 4...
+Nd6
+{ [%eval 0.15] The knight retreats to a safe square and keeps the extra pawn. Be careful about f7: the queen and the bishop both aim at it, so Black's next moves have to deal with the threat of Qxf7 mate. }
+5. Bb3 { [%eval 0.06] The bishop retreats and keeps the queen's attack on e5. }
+5... Be7 { [%eval 0.03] Develops and prepares to castle. } 6. Nf3
+{ [%eval -0.21] White develops and attacks e5 a second time. } 6... Nc6
+{ [%eval -0.15] Defends e5 again. } 7. Nxe5 { [%eval -0.24] White takes. } 7...
+Nxe5 { [%eval 0.35] Black takes. } 8. Qxe5
+{ [%eval 0.38] White takes back and the queen is strong in the centre, so Black must be ready for tricks on the e-file. }
+8... O-O $14 { [%eval 0.36] Black castles and has a fine game. } ) 3... d5
+{ [%eval -0.26] [%cal Gd7d5] Strikes at the centre. Do not take on f4 with 3...exf4?, because 4.e5 kicks the knight and Black is worse placed. Hitting back with ...d5 is the same idea as the Falkbeer Countergambit in the King's Gambit. }
+4. fxe5 { [%eval -0.26] White takes. } 4... Nxe4
+{ [%eval -0.23] Black takes back and has a strong centre knight. } 5. Nf3
+{ [%eval -0.27] White develops and defends e5. } 5... Be7
+{ [%eval 0.00] The Breyer Variation, a solid setup. White gets open lines and kingside chances, so Black often looks for counterplay on the queenside with ...c5 and ...Qa5. Castling comes first. }
+6. d4 { [%eval -0.27] White builds the centre. } 6... O-O $10
+{ [%eval 0.13] Black castles. The position is level. } ) ( 2. Bc4
+{ [%eval 0.12] The Bishop's Opening. The bishop comes out before the knight and aims at f7. }
+2... Nf6
+{ [%eval 0.16] The Berlin Defence, Black's most active reply: it attacks e4 at once and forces White to defend it. Black must watch for a delayed f4, which can turn the game into a kind of King's Gambit. }
+3. d3 { [%eval 0.22] Supports e4 and keeps the position closed. } ( 3. Nc3
+{ [%eval -0.06] White develops the knight and plans f4. } 3... Nxe4
+{ [%eval 0.13] Black takes the pawn. This is the way to answer 3.Nc3: White gets only a trade of pieces. }
+4. Nxe4 { [%eval -0.87] White takes the knight. } 4... d5
+{ [%eval -0.74] Forks the bishop and the knight. } 5. Bd3
+{ [%eval -0.77] White defends the knight and takes the fork away. } 5... dxe4
+{ [%eval -0.83] Black takes the knight. } 6. Bxe4
+{ [%eval -0.85] White takes the pawn back and the material is level. } 6... Nc6
+$10 { [%eval -0.09] Develops and eyes d4. Black has an easy game. } ) 3... c6
+{ [%eval 0.20] [%cal Gc6d5] The Paulsen Defence. Black builds a strong centre of ...c6, ...d5 and ...e5, and the bishop must move again, which gains a tempo. White's counterplay is to attack the chain. }
+4. Nf3 { [%eval 0.14] White develops. } 4... d5
+{ [%eval 0.04] Black takes the centre. } 5. Bb3
+{ [%eval -0.11] The bishop steps out of the way of ...d4. } 5... Bd6 $10
+{ [%eval 0.21] Develops and prepares to castle. The position is equal. } ) 2...
+Nc6
+{ [%eval 0.43] Defends e5 and develops a piece. White now chooses between the Italian, the Three Knights and the Scotch. }
+3. Bc4
+{ [%eval 0.18] The Italian Game. The bishop looks at f7, Black's weakest square. }
+( 3. Nc3
+{ [%eval 0.16] The Three Knights. White develops a third piece before deciding on a plan. }
+3... Nf6
+{ [%eval 0.13] After 3...Nf6 this is the Four Knights Game. It is solid and rather drawish: Black just copies White's development and there is no need to look for more. }
+4. Bb5 { [%eval 0.04] The Spanish-style move, aimed at the c6 knight. } ( 4. d4
+{ [%eval 0.13] White opens the centre at once. } 4... exd4
+{ [%eval 0.14] Black takes. } 5. Nxd4
+{ [%eval 0.13] White recaptures with the knight. } 5... Bb4
+{ [%eval 0.21] Pins the knight on c3. This is the Scotch Four Knights. } 6.
+Nxc6 { [%eval 0.18] White trades a pair of knights. } 6... bxc6
+{ [%eval 0.19] Black recaptures. The pawn structure is a little worse but the bishops are active. }
+7. Bd3 { [%eval 0.15] White develops. } 7... d5
+{ [%eval 0.14] Black strikes in the centre. } 8. exd5
+{ [%eval 0.15] White takes. } 8... cxd5 $10
+{ [%eval 0.15] Black recaptures and the position is level. } ) 4... Bb4
+{ [%eval 0.20] Black pins in return. This is the Four Knights Spanish: a symmetrical pin on both sides. Black copies White's setup, which is solid and easy to play. }
+5. O-O { [%eval 0.29] White castles. } 5... O-O
+{ [%eval 0.31] Black castles too. } 6. d3
+{ [%eval 0.25] White supports e4 and opens the c1 bishop. } 6... d6
+{ [%eval 0.26] Black does the same. } 7. Bg5
+{ [%eval 0.11] White pins the f6 knight. } 7... Bxc3
+{ [%eval 0.32] Black removes the knight that guards the centre and doubles White's pawns. }
+8. bxc3 { [%eval 0.14] White takes, and now has doubled pawns on the c-file. }
+8... Qe7 $10
+{ [%eval 0.28] Unpins the knight in a useful way and prepares ...Nd8 and ...Ng6. The doubled c-pawns give Black an easy game. }
+) ( 3. d4 { [%eval 0.16] The Scotch. White opens the centre at once. } 3...
+exd4 { [%eval 0.30] Black takes. Never ignore the pawn on d4. } 4. Nxd4
+{ [%eval 0.14] White recaptures. The knight is strong in the centre, and Black must challenge it. }
+( 4. Bc4
+{ [%eval -0.06] The Scotch Gambit. White develops first and takes the pawn back later. }
+4... Bc5 { [%eval -0.10] Develops with pressure on f2 and keeps an eye on d4. }
+5. O-O { [%eval -0.39] White castles and offers the pawn on e4 for activity. }
+5... d6
+{ [%eval -0.41] Supports the centre and opens the c8 bishop. Black can safely keep the extra pawn. }
+6. c3 { [%eval -0.31] White tries to open lines for the pieces. } 6... Nf6
+{ [%eval 0.59] Develops with an attack on e4. } 7. cxd4
+{ [%eval 0.52] White takes the pawn back. } 7... Bb6 $14
+{ [%eval 0.50] The bishop steps back to a safe diagonal and stays aimed at d4 and f2. }
+) 4... Nf6 { [%eval 0.19] Develops with an attack on e4. } 5. Nxc6
+{ [%eval 0.18] White removes the c6 knight. } 5... bxc6
+{ [%eval 0.13] Black recaptures with the b-pawn, and this is the only good way. Taking with 5...dxc6? allows 6.Qxd8+ Kxd8, and Black has lost the right to castle. The doubled c-pawns control d5 and open the b-file. }
+6. e5 { [%eval 0.04] White pushes with tempo, attacking the knight. } 6... Qe7
+{ [%eval 0.00] The Mieses Variation, which Kasparov played with Black. The queen attacks e5 and prepares ...Nd5, and the pin on the e-file makes White decide what to do with the pawn on e5. }
+7. Qe2 { [%eval 0.00] White unpins and defends e5. } 7... Nd5
+{ [%eval 0.00] The knight goes to the centre. It is safe there and eyes c3 and f4. }
+8. c4 { [%eval 0.00] White kicks the knight. } 8... Ba6 $10
+{ [%eval -0.02] The bishop pins the queen to the king and pushes a trade of queens that favours Black. A strong move. }
+) 3... Bc5
+{ [%eval 0.23] [%cal Gc5f2] The Giuoco Piano. Black mirrors White: the bishop takes the matching diagonal and eyes f2. }
+( 3... Nf6
+{ [%eval 0.22] The Two Knights. Black develops with an attack on e4 and leaves the bishop at home for now. }
+4. Ng5
+{ [%eval 0.23] An aggressive try at f7. It looks scary, and the only way to meet it is to counter in the centre at once. }
+4... d5
+{ [%eval 0.23] [%cal Gd7d5] Black must hit the centre. Defending passively with ...Nxe4 or ...Qe7 loses time or material. }
+5. exd5 { [%eval 0.16] White takes the pawn. } 5... Na5
+{ [%eval 0.15] [%cal Gc6a5] The right recapture. Taking with the knight (...Nxd5) walks into 6.Nxf7, the Fried Liver, a trap that wins for White. The knight on a5 hits the bishop instead. }
+6. Bb5+ { [%eval 0.14] White checks and tries to keep the extra pawn. } 6... c6
+{ [%eval 0.21] Blocks the check and attacks the pawn on d5 and the bishop. } 7.
+dxc6 { [%eval 0.17] White takes. } 7... bxc6
+{ [%eval 0.15] Black takes back and attacks the bishop on b5. } 8. Be2
+{ [%eval 0.01] The bishop retreats. } 8... h6
+{ [%eval -0.02] Kicks the knight from g5. Black has given up a pawn for fast development and a pressure on the centre. }
+9. Nf3 { [%eval -0.10] The knight retreats. } 9... e4
+{ [%eval -0.15] Gains time by hitting the knight again. } 10. Ne5
+{ [%eval -0.18] The knight jumps to the centre. } 10... Bd6 $10
+{ [%eval -0.09] Black develops with an attack on the knight. This is the idea: White's pieces are in the way of each other while Black's are active. }
+) 4. c3 { [%eval 0.28] Prepares d4, to build a broad pawn centre. } 4... Nf6
+{ [%eval 0.27] Develops with an attack on e4. } 5. d3
+{ [%eval 0.20] The quiet Giuoco Pianissimo, the "very quiet game". White builds slowly with d3, Nbd2 and O-O, and keeps the centre solid. There is less theory than in the sharp lines, so it is easy to play well with a simple plan. }
+( 5. d4 { [%eval 0.02] White strikes in the centre at once. } 5... exd4
+{ [%eval 0.02] Takes the pawn. After cxd4 Black has the check ...Bb4+, which is why taking on d4 is the right choice here and not something to avoid. }
+6. cxd4
+{ [%eval 0.02] White recaptures and has a big pawn centre, with a check coming. }
+6... Bb4+
+{ [%eval -0.03] Check. The bishop gains a tempo against the c3 pawn that has just moved on. }
+7. Bd2 { [%eval -0.09] White blocks the check. } 7... Bxd2+
+{ [%eval 0.00] Trades off the bishop before White can use it. } 8. Nbxd2
+{ [%eval 0.00] Recaptures and develops a piece. } 8... d5
+{ [%eval 0.00] [%cal Gd7d5] The key move. Black hits the centre before White can use it, and the game is equal. }
+9. exd5 { [%eval 0.08] White takes. } 9... Nxd5 $10
+{ [%eval 0.16] Black recaptures with a piece, aims at the isolated pawn on d4 and keeps the knights active. }
+) 5... d6
+{ [%eval 0.24] Supports e5 and opens the c8 bishop. Black's usual plan from here is ...a6 or ...a5, then ...O-O: keep the centre solid, castle, and wait for White to make a commitment. }
+6. O-O { [%eval 0.24] White castles. } 6... O-O $10
+{ [%eval 0.18] Black castles too. Both sides are developed and both kings are safe; what follows is a manoeuvring game. }
+*

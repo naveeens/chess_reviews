@@ -55,6 +55,17 @@ fun SettingsScreen(settings: AppSettings) {
 
             Group("Games") {
                 Toggle("Review a game when it opens", settings.autoReview) { v -> store.update { copy(autoReview = v) } }
+                Spacer(Modifier.height(10.dp))
+                Text("Moves \"Show why\" and the best line play", style = MaterialTheme.typography.bodyLarge, color = c.text)
+                Text("Counting both sides. A line that ends on a capture goes on through the recaptures.", style = MaterialTheme.typography.bodySmall, color = c.muted, modifier = Modifier.padding(top = 2.dp, bottom = 8.dp))
+                Segmented(WhyLine.OPTIONS.map { it to "$it" }, settings.lineLength, { n -> store.update { copy(lineLength = n) } }, Modifier.fillMaxWidth())
+            }
+
+            Group("Play") {
+                Toggle("Analyse while I play", settings.analyseWhilePlaying) { v -> store.update { copy(analyseWhilePlaying = v) } }
+                Text("The engine looks at the game as it goes, so its review is ready at the end. Uses more battery.", style = MaterialTheme.typography.bodySmall, color = c.muted, modifier = Modifier.padding(bottom = 10.dp))
+                Toggle("Warn before a blunder", settings.blunderCheck) { v -> store.update { copy(blunderCheck = v) } }
+                Text("The engine checks each move you make and asks first if it gives the game away.", style = MaterialTheme.typography.bodySmall, color = c.muted)
             }
 
             val pro by Graph.pro.owned.collectAsState()

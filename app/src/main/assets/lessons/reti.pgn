@@ -1,0 +1,75 @@
+[Event "Réti and Zukertort: 1.Nf3"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[ECO "A09"]
+[Learn "white"]
+
+{ The Réti and the Zukertort. White starts with 1.Nf3, keeps the centre flexible and puts the f1 bishop on g2, where it hits the long diagonal. The plan is the same against almost any reply: fianchetto, castle, pressure the centre with c4, and decide on e4 or d4 when you see what Black has done. You play White. }
+1. Nf3
+{ [%eval 0.24] The Zukertort Opening. White develops a knight and keeps every option open. It is the first move of the Réti, where White controls the centre with pieces and long-range bishops from the flanks, rather than occupying it with pawns at once. }
+1... d5 { [%eval 0.24] Black takes the centre at once. } ( 1... Nf6
+{ [%eval 0.27] Black develops and controls the centre. } 2. g3
+{ [%eval 0.18] White keeps a flexible setup whatever Black does: g3, Bg2, O-O and then d3 or d4. With Black on the same plan it is a King's Indian reversed. }
+2... g6 { [%eval 0.26] Black plans the same. } 3. Bg2
+{ [%eval 0.25] The bishop takes the long diagonal. } 3... Bg7
+{ [%eval 0.24] Black does the same. } 4. O-O { [%eval 0.18] White castles. }
+4... O-O { [%eval 0.24] Black castles too. } 5. d3
+{ [%eval -0.16] Supports e4 and opens the c1 bishop. } 5... d6
+{ [%eval 0.13] Black does the same and prepares ...e5. } 6. c4
+{ [%eval 0.08] White takes space on the queenside and prepares Nc3. } 6... Nc6
+$10 { [%eval 0.26] Black develops and eyes d4. } ) ( 1... c5
+{ [%eval 0.37] Black takes the centre from the side. } 2. c4
+{ [%eval 0.26] White takes space on the queenside and prepares Nc3. The position now looks like an English Opening, and White's setup is the same: g3, Bg2, O-O. }
+2... Nc6 { [%eval 0.32] Black develops. } 3. Nc3
+{ [%eval 0.29] White develops. } 3... Nf6 { [%eval 0.31] Black develops. } 4.
+g3 { [%eval 0.33] Prepares the fianchetto. } 4... d5
+{ [%eval 0.28] Black strikes in the centre. } 5. cxd5
+{ [%eval 0.15] White takes. } 5... Nxd5 { [%eval 0.13] Black recaptures. } 6.
+Bg2 $10 { [%eval 0.12] The bishop takes its post and eyes the knight on d5. } )
+2. c4
+{ [%eval -0.14] [%cal Gc4d5] The Réti. Instead of building a pawn centre, White attacks d5 from the side. This is the hypermodern idea: let Black occupy the centre, and then put pressure on it. If Black takes on c4, White gets the pawn back without trouble. }
+2... e6 { [%eval 0.24] Black defends d5 solidly. } ( 2... d4
+{ [%eval -0.10] Black gains space and keeps the position closed, a bit like a Benoni with the colours reversed. White attacks the pawn with the solid e3; the sharp 3.b4 is also possible, a kind of Benko Gambit. }
+3. e3 { [%eval -0.19] White hits the pawn on d4. } 3... Nc6
+{ [%eval -0.10] Black defends d4. } 4. exd4 { [%eval -0.15] White takes. } 4...
+Nxd4 { [%eval -0.11] Black recaptures. } 5. Nxd4
+{ [%eval -0.18] White trades a pair of knights. } 5... Qxd4
+{ [%eval -0.11] Black recaptures with the queen. } 6. Nc3
+{ [%eval -0.19] White develops a piece and prepares Be3 or Nb5, which would hit the queen. }
+6... Nf6 { [%eval 0.11] Black develops. } 7. d3 $10
+{ [%eval 0.20] The pawn on d3 defends c4, and the c1 bishop is free to come to e3 with tempo against the queen. }
+) ( 2... c6
+{ [%eval 0.23] The Slav-style set-up. Black defends d5 with a pawn and keeps the bishop free. }
+3. b3
+{ [%eval -0.12] Against the Slav-style defence, White fianchettoes the queen's bishop. The bishop on b2 looks down the long diagonal at the kingside, and White keeps the centre flexible. }
+3... Nf6 { [%eval 0.04] Black develops. } 4. e3
+{ [%eval -0.05] Opens the f1 bishop and supports d4. } 4... Bf5
+{ [%eval 0.04] Black puts the bishop outside the pawn chain. } 5. Bb2
+{ [%eval -0.08] White develops with pressure on the long diagonal. } 5... e6
+{ [%eval -0.06] Black solidifies d5. } 6. Be2
+{ [%eval -0.22] White prepares to castle. } 6... Nbd7
+{ [%eval 0.29] Black develops. } 7. O-O { [%eval -0.18] White castles. } 7...
+Bd6 $10 { [%eval 0.29] Black develops with pressure on the kingside. } ) 3. g3
+{ [%eval 0.21] White plans a fianchetto, with the bishop on g2 aimed at d5 and the queenside. It resembles a Catalan with the knight on f3 and no pawn on d4 yet. White can play d4 later and transpose to a closed Catalan. }
+3... Nf6 { [%eval 0.34] Black develops. } 4. Bg2
+{ [%eval 0.21] The bishop takes the long diagonal. } 4... Be7
+{ [%eval 0.37] Black prepares to castle. } ( 4... dxc4
+{ [%eval 0.24] Black takes the pawn. White does not have to hurry: Qa4+ gets it back at once, and the bishop on g2 keeps its pressure on the long diagonal. }
+5. Qa4+ { [%eval 0.35] Check, and White gets the pawn back. } 5... Nbd7
+{ [%eval 0.27] Black blocks the check. } 6. Qxc4
+{ [%eval 0.35] White takes the pawn back and the queen eyes c7 and the e6 pawn. }
+6... c5 { [%eval 0.32] Black takes space. } 7. O-O
+{ [%eval 0.26] White castles and develops quickly. } 7... Be7 $14
+{ [%eval 0.57] Black prepares to castle. } ) 5. O-O
+{ [%eval 0.34] White castles, and the king is safe. } 5... O-O
+{ [%eval 0.33] Black castles too. } 6. b3
+{ [%eval 0.15] Prepares Bb2, so that both bishops look down the long diagonals at the centre. White can also play d4 here, which would transpose to a closed Catalan. The choice keeps Black guessing. }
+6... c5 { [%eval 0.27] Black takes space in the centre. } 7. Bb2
+{ [%eval -0.06] The bishops sit on the long diagonals, both aimed at the centre and at Black's king. }
+7... Nc6 { [%eval 0.25] Black develops and adds pressure to d4. } 8. e3 $10
+{ [%eval -0.16] Supports d4 and the knight, and opens the f1 square for the rook. }
+*

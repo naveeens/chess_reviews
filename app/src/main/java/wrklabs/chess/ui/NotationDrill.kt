@@ -101,7 +101,7 @@ fun ColumnScope.NotationSection(settings: AppSettings) {
         }
     }
 
-    Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+    Column(Modifier.fillMaxWidth().weight(1f).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(10.dp)) {
         Row(Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
                 Text("Play the line", style = MaterialTheme.typography.titleMedium, color = c.text, fontWeight = FontWeight.Bold)
@@ -136,9 +136,12 @@ fun ColumnScope.NotationSection(settings: AppSettings) {
                 Text(line.text(), style = MaterialTheme.typography.bodyLarge, color = c.text)
                 if (!finished) Text("Next: ${line.moves[ply].second}", style = MaterialTheme.typography.titleMedium, color = c.brand, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 6.dp))
             }
-            if (finished) RButton("Next line", { reset(nextLine()) }, Modifier.fillMaxWidth())
-            else RButton("Skip", { reset(nextLine()) }, Modifier.fillMaxWidth(), style = ButtonStyle.Tonal)
             Spacer(Modifier.height(12.dp))
         }
+    }
+    // The way on, pinned at the bottom: Next line once the line is played, Skip while it is.
+    Column(Modifier.padding(start = 14.dp, end = 14.dp, top = 8.dp, bottom = 4.dp)) {
+        if (finished) RButton("Next line", { reset(nextLine()) }, Modifier.fillMaxWidth())
+        else RButton("Skip", { reset(nextLine()) }, Modifier.fillMaxWidth(), style = ButtonStyle.Tonal)
     }
 }

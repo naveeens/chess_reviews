@@ -12,6 +12,7 @@ import wrklabs.chess.db.GameRepository
 import wrklabs.chess.db.KvRepository
 import wrklabs.chess.db.PuzzleRepository
 import wrklabs.chess.engine.StockfishEngine
+import wrklabs.chess.maia.MaiaEngine
 import wrklabs.chess.review.ReviewService
 import wrklabs.chess.settings.SettingsStore
 
@@ -31,6 +32,10 @@ object Graph {
         private set
     lateinit var reviews: ReviewService
         private set
+    lateinit var maia: MaiaEngine
+        private set
+    lateinit var play: wrklabs.chess.play.PlayStore
+        private set
     lateinit var pro: ProAccess
         private set
     lateinit var billing: BillingManager
@@ -48,6 +53,8 @@ object Graph {
         kv = KvRepository(db)
         engine = StockfishEngine(app)
         reviews = ReviewService(app, engine, games)
+        maia = MaiaEngine(app)
+        play = wrklabs.chess.play.PlayStore(kv)
         pro = ProAccess(app)
         billing = BillingManager(app, CoroutineScope(SupervisorJob() + Dispatchers.Main)) { pro.set(it) }.also { it.startConnection() }
         wrklabs.chess.sound.SoundPlayer.init(app)
@@ -58,6 +65,7 @@ object Graph {
         if (!ready) return
         billing.endConnection()
         engine.destroy()
+        maia.close()
         ready = false
     }
 }

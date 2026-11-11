@@ -72,6 +72,8 @@ fun ChessboardView(
     /** The king that has been checkmated. */
     mated: Square? = null,
     coordinates: Boolean = true,
+    /** Thin lines between the squares, for a board with no checker pattern. */
+    grid: Boolean = false,
     highlightLastMove: Boolean = true,
     showLegalMoves: Boolean = true,
     interactive: Boolean = true,
@@ -142,6 +144,11 @@ fun ChessboardView(
 
             for (r in 0 until 8) for (f in 0 until 8) {
                 drawRect(if ((r + f) % 2 == 0) colors.light else colors.dark, Offset(f * sq, r * sq), cell)
+            }
+            if (grid) for (i in 1..7) {
+                val line = Color(0x66000000)
+                drawLine(line, Offset(i * sq, 0f), Offset(i * sq, size.height), strokeWidth = 2f)
+                drawLine(line, Offset(0f, i * sq), Offset(size.width, i * sq), strokeWidth = 2f)
             }
 
             if (highlightLastMove) lastMove?.let { (a, b) ->

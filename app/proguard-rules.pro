@@ -8,3 +8,6 @@
 -keep class wrklabs.chess.model.** { *; }
 -keep class wrklabs.chess.classifier.** { *; }
 -keep class wrklabs.chess.engine.** { *; }
+
+# ONNX Runtime looks its Java classes up by name from native code.
+-keep class ai.onnxruntime.** { *; }

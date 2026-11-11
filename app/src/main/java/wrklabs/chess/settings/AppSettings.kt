@@ -39,6 +39,12 @@ data class AppSettings(
     val autoReview: Boolean = true,
     /** In a review, the engine answers the moves you make off the game with the opponent's reply. */
     val opponentReply: Boolean = false,
+    /** How many moves "Show why" and the best line play out. */
+    val lineLength: Int = wrklabs.chess.ui.WhyLine.DEFAULT,
+    /** In a game against Maia, the engine looks at the positions as they come, so the review is ready when it ends. */
+    val analyseWhilePlaying: Boolean = true,
+    /** In a game against Maia, a move that gives the game away is checked with the engine before it is played. */
+    val blunderCheck: Boolean = false,
 ) {
     val hasAccounts get() = chesscomUser.isNotBlank() || lichessUser.isNotBlank()
 }
@@ -79,6 +85,9 @@ class SettingsStore(context: Context) {
             reviewSpeed = prefs.enum("reviewSpeed", d.reviewSpeed),
             autoReview = prefs.getBoolean("autoReview", d.autoReview),
             opponentReply = prefs.getBoolean("opponentReply", d.opponentReply),
+            analyseWhilePlaying = prefs.getBoolean("analyseWhilePlaying", d.analyseWhilePlaying),
+            blunderCheck = prefs.getBoolean("blunderCheck", d.blunderCheck),
+            lineLength = prefs.getInt("lineLength", d.lineLength).coerceIn(wrklabs.chess.ui.WhyLine.OPTIONS.first(), wrklabs.chess.ui.WhyLine.OPTIONS.last()),
         )
     }
 
@@ -101,6 +110,9 @@ class SettingsStore(context: Context) {
             .putString("reviewSpeed", s.reviewSpeed.name)
             .putBoolean("autoReview", s.autoReview)
             .putBoolean("opponentReply", s.opponentReply)
+            .putBoolean("analyseWhilePlaying", s.analyseWhilePlaying)
+            .putBoolean("blunderCheck", s.blunderCheck)
+            .putInt("lineLength", s.lineLength)
             .apply()
     }
 }

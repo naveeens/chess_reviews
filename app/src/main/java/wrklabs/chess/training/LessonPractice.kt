@@ -32,9 +32,16 @@ sealed interface PracticeResult {
 
 /**
  * Drills one side of a lesson. You move; any move the lesson has at that point is right (the first is the main line).
- * The opponent answers with a move the lesson has, preferring the one taken least so far.
+ * The opponent answers with a move the lesson has. Without [humanShare] it takes the one taken least so far, so every
+ * branch gets its turn. With it (a node id to the share of players who make that move), the replies people really play
+ * come up more often, each less so the more it has already been seen, and a rare reply still turns up now and then.
  */
-class LessonPractice(private val tree: GameTree, private val learner: PieceColor, private val random: Random = Random.Default) {
+class LessonPractice(
+    private val tree: GameTree,
+    private val learner: PieceColor,
+    private val random: Random = Random.Default,
+    private val humanShare: Map<String, Float> = emptyMap(),
+) {
     private fun node(id: String) = tree.nodes.getValue(id)
 
     private fun learnerToMove(n: MoveNode): Boolean {
@@ -44,6 +51,12 @@ class LessonPractice(private val tree: GameTree, private val learner: PieceColor
 
     private fun opponentReply(n: MoveNode, visits: Map<String, Int>): MoveNode {
         val options = n.children.map(::node)
+        if (options.size > 1 && options.all { it.id in humanShare }) {
+            val weights = options.map { maxOf(humanShare.getValue(it.id), MIN_SHARE) / (1 + (visits[it.id] ?: 0)) }
+            var pick = random.nextDouble() * weights.sum()
+            for ((i, w) in weights.withIndex()) { pick -= w; if (pick < 0) return options[i] }
+            return options.last()
+        }
         val least = options.minOf { visits[it.id] ?: 0 }
         return options.filter { (visits[it.id] ?: 0) == least }.random(random)
     }
@@ -77,4 +90,9 @@ class LessonPractice(private val tree: GameTree, private val learner: PieceColor
 
     /** The move the lesson wants here, for a hint. */
     fun expected(state: PracticeState): MoveNode? = node(state.nodeId).children.firstOrNull()?.let(::node)
+
+    companion object {
+        /** A reply almost nobody plays is still worth meeting sometimes: it counts as at least this much. */
+        const val MIN_SHARE = 0.03f
+    }
 }

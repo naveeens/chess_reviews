@@ -60,13 +60,17 @@ fun AnalysisScreen(vm: AnalysisViewModel, settings: AppSettings) {
     fun name(color: PieceColor) = info?.let { if (color == PieceColor.WHITE) it.white else it.black } ?: if (color == PieceColor.WHITE) "White" else "Black"
     fun rating(color: PieceColor) = info?.let { if (color == PieceColor.WHITE) it.whiteRating else it.blackRating }
     fun score(color: PieceColor) = scoreOf(color, s.result)
+    fun seat(color: PieceColor) = Seat(name(color), rating(color), color, null, score(color), if (settings.showMaterial) materialDiff(board, color) else null)
 
     BoxWithConstraints(Modifier.fillMaxSize()) {
         val showBar = settings.analysisEngine && settings.showEvalBar
         val boardSize = maxWidth
         Column(Modifier.fillMaxSize()) {
             PageHeader("Analyze", subtitle = info?.let { "${it.white} vs ${it.black}" })
-            PlayerBar(name(topColor), rating(topColor), topColor, null, score = score(topColor), material = if (settings.showMaterial) materialDiff(board, topColor) else null)
+            val footer = @Composable { AnalysisToolbar(vm, onOptions = { options = true }, onLoadPgn = { loadPgn = true }, onLoadFen = { loadFen = true }, onCopyFen = { copyText(context, "FEN", vm.fen()) }, onCopyPgn = { copyText(context, "PGN", vm.pgn()) }) }
+            // The board and what goes with it scroll on a phone too short for them; the toolbar stays.
+            BoardBody(footer = footer) {
+            BoardWithSeats(seat(topColor), seat(bottomColor), if (showBar) EvalBar(s.score, s.orientation) else null) {
             Box(Modifier.fillMaxWidth().height(boardSize)) {
                 ChessboardView(
                     modifier = Modifier.size(boardSize),
@@ -86,18 +90,14 @@ fun AnalysisScreen(vm: AnalysisViewModel, settings: AppSettings) {
                     onMove = vm::onDrag,
                 )
             }
+            }
             s.promotion?.let { PromotionPicker(board.turn, vm::choosePromotion, vm::cancelPromotion) }
-            if (showBar) EvalStrip(s.score, s.orientation)
-            PlayerBar(name(bottomColor), rating(bottomColor), bottomColor, null, score = score(bottomColor), material = if (settings.showMaterial) materialDiff(board, bottomColor) else null)
 
             MoveStrip(s.line, s.currentNodeId, null, vm::select, extraGrades = if (settings.moveFeedback && settings.analysisEngine) s.grades else emptyMap(), alternatives = { n -> n.parentId?.let { s.tree.nodes[it] }?.children.orEmpty().filter { it != n.id }.mapNotNull { s.tree.nodes[it] } })
-            Spacer(Modifier.weight(1f))
             // The engine's two best lines: a tap anywhere on a row plays its first move.
             if (settings.analysisEngine) EngineRows(s.lines, s.currentNode.fen, engineStatus, why = if (s.whyFrom != null) s.whyText else if (s.thinking) "The engine is replying…" else null) { uci -> vm.playLine(listOf(uci)) }
             else Text("The engine is off. Turn it on in Analysis options.", style = MaterialTheme.typography.bodyMedium, color = c.muted, modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp))
-
-            Hairline()
-            AnalysisToolbar(vm, onOptions = { options = true }, onLoadPgn = { loadPgn = true }, onLoadFen = { loadFen = true }, onCopyFen = { copyText(context, "FEN", vm.fen()) }, onCopyPgn = { copyText(context, "PGN", vm.pgn()) })
+            }
         }
     }
 
@@ -233,7 +233,7 @@ private fun EngineRows(lines: List<EngineLine>, fen: String, status: wrklabs.che
 private fun AnalysisToolbar(vm: AnalysisViewModel, onOptions: () -> Unit, onLoadPgn: () -> Unit, onLoadFen: () -> Unit, onCopyFen: () -> Unit, onCopyPgn: () -> Unit) {
     val c = Palette.colors
     var menu by remember { mutableStateOf(false) }
-    Row(Modifier.fillMaxWidth().height(56.dp).padding(horizontal = 6.dp), horizontalArrangement = Arrangement.SpaceAround, verticalAlignment = Alignment.CenterVertically) {
+    BoardToolbar {
         Box {
             IconTap(Icons.Default.Menu, "Menu", { menu = true }, size = 48)
             DropdownMenu(menu, { menu = false }, containerColor = c.cardHigh) {
@@ -246,13 +246,6 @@ private fun AnalysisToolbar(vm: AnalysisViewModel, onOptions: () -> Unit, onLoad
             }
         }
         IconTap(Icons.Default.SwapVert, "Flip board", vm::flip, size = 48)
-        Box(
-            Modifier.size(48.dp).clip(androidx.compose.foundation.shape.CircleShape).combinedClickable(onClick = vm::previous, onLongClick = vm::first),
-            contentAlignment = Alignment.Center,
-        ) { Icon(Icons.AutoMirrored.Filled.NavigateBefore, "Previous move", tint = c.text, modifier = Modifier.size(28.dp)) }
-        Box(
-            Modifier.size(48.dp).clip(androidx.compose.foundation.shape.CircleShape).combinedClickable(onClick = vm::next, onLongClick = vm::last),
-            contentAlignment = Alignment.Center,
-        ) { Icon(Icons.AutoMirrored.Filled.NavigateNext, "Next move", tint = c.text, modifier = Modifier.size(28.dp)) }
+        StepButtons(vm::previous, vm::next, vm::first, vm::last)
     }
 }

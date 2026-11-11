@@ -7,7 +7,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -142,6 +142,12 @@ fun EvalStrip(score: Score?, orientation: PieceColor, modifier: Modifier = Modif
     }
 }
 
+/** One move of a line on the strip, and the other moves played from the same position, which are shown in brackets after it. */
+class StripMove(
+    val id: String, val ply: Int, val san: String,
+    val cls: MoveClass? = null, val offGame: Boolean = false, val alternatives: List<StripMove> = emptyList(),
+)
+
 /** The moves of the line being looked at, side by side, with the review's mark on each. */
 @Composable
 fun MoveStrip(
@@ -153,34 +159,46 @@ fun MoveStrip(
     /** The other moves played from the same position as this one, shown in brackets after it. */
     alternatives: (MoveNode) -> List<MoveNode> = { emptyList() },
 ) {
+    val moves = line.map { n ->
+        StripMove(
+            n.id, n.ply, n.san.orEmpty(), report?.moves?.get(n.id)?.cls ?: extraGrades[n.id], offGame(n.id),
+            alternatives(n).map { StripMove(it.id, it.ply, it.san.orEmpty()) },
+        )
+    }
+    MoveStripRow(moves, currentId, onSelect, modifier)
+}
+
+/** The strip itself, for any list of moves: the review's and the analysis board's, and a game against the bot. */
+@Composable
+fun MoveStripRow(moves: List<StripMove>, currentId: String, onSelect: (String) -> Unit, modifier: Modifier = Modifier) {
     val c = Palette.colors
     val state = rememberLazyListState()
-    val index = line.indexOfFirst { it.id == currentId }
-    LaunchedEffect(index) { if (index >= 0) state.animateScrollToItem((index - 2).coerceAtLeast(0)) }
-    if (line.isEmpty()) {
+    val index = moves.indexOfFirst { it.id == currentId }
+    LaunchedEffect(index, moves.size) { if (index >= 0) state.animateScrollToItem((index - 2).coerceAtLeast(0)) }
+    if (moves.isEmpty()) {
         Spacer(modifier.fillMaxWidth().height(34.dp))
         return
     }
     LazyRow(state = state, modifier = modifier.fillMaxWidth(), contentPadding = PaddingValues(horizontal = 10.dp), verticalAlignment = Alignment.CenterVertically) {
-        items(line, key = { it.id }) { node ->
-            val white = node.ply % 2 == 1
-            val on = node.id == currentId
-            val off = offGame(node.id)
-            val cls = report?.moves?.get(node.id)?.cls ?: extraGrades[node.id]
+        itemsIndexed(moves, key = { _, m -> m.id }) { i, m ->
+            val white = m.ply % 2 == 1
+            val on = m.id == currentId
             Row(verticalAlignment = Alignment.CenterVertically) {
-                if (white) Text("${(node.ply + 1) / 2}.", style = MaterialTheme.typography.labelMedium, color = c.muted, modifier = Modifier.padding(start = 6.dp, end = 2.dp))
+                // A line that starts on Black's move says so: "12…".
+                if (white) Text("${(m.ply + 1) / 2}.", style = MaterialTheme.typography.labelMedium, color = c.muted, modifier = Modifier.padding(start = 6.dp, end = 2.dp))
+                else if (i == 0) Text("${m.ply / 2}…", style = MaterialTheme.typography.labelMedium, color = c.muted, modifier = Modifier.padding(start = 6.dp, end = 2.dp))
                 Row(
-                    Modifier.clip(RoundedCornerShape(8.dp)).background(if (on) c.brandCard else Color.Transparent).clickable { onSelect(node.id) }.padding(horizontal = 6.dp, vertical = 6.dp),
+                    Modifier.clip(RoundedCornerShape(8.dp)).background(if (on) c.brandCard else Color.Transparent).clickable { onSelect(m.id) }.padding(horizontal = 6.dp, vertical = 6.dp),
                     verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(3.dp),
                 ) {
-                    Text(node.san.orEmpty(), style = MaterialTheme.typography.titleSmall, color = if (on) c.brandCardText else if (off) c.brand else c.text)
-                    if (cls != null) Box(Modifier.size(7.dp).clip(CircleShape).background(cls.composeColor))
+                    Text(m.san, style = MaterialTheme.typography.titleSmall, color = if (on) c.brandCardText else if (m.offGame) c.brand else c.text)
+                    if (m.cls != null) Box(Modifier.size(7.dp).clip(CircleShape).background(m.cls.composeColor))
                 }
-                for (alt in alternatives(node)) {
+                for (alt in m.alternatives) {
                     val altOn = alt.id == currentId
                     val number = if (alt.ply % 2 == 1) "${(alt.ply + 1) / 2}." else "${alt.ply / 2}…"
                     Text(
-                        "($number${alt.san.orEmpty()})", style = MaterialTheme.typography.bodyMedium,
+                        "($number${alt.san})", style = MaterialTheme.typography.bodyMedium,
                         color = if (altOn) c.brandCardText else c.brand,
                         modifier = Modifier.padding(start = 2.dp).clip(RoundedCornerShape(8.dp)).background(if (altOn) c.brandCard else Color.Transparent).clickable { onSelect(alt.id) }.padding(horizontal = 5.dp, vertical = 6.dp),
                     )

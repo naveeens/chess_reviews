@@ -9,41 +9,105 @@
 [Learn "black"]
 
 { The Caro-Kann. Black prepares ...d5 with ...c6 first, so the light-squared bishop can come out before the pawn chain closes it in. You play Black. }
-1. e4 $14 { [%eval 0.31] } 1... c6
-{ [%eval 0.37] [%cal Gc6d5] Supports ...d5 with a pawn, without shutting in the bishop on c8 the way ...e6 would. }
-2. d4 { [%eval 0.49] } 2... d5 { [%eval 0.42] } 3. Nc3
-{ [%eval 0.39] The Classical setup. White defends e4 with a piece. } ( 3. e5
-{ [%eval 0.37] The Advance Variation. White grabs space and shuts the bishop's diagonal, so Black has to act at once. }
+1. e4 $14
+{ [%eval 0.31] White takes space in the centre and opens lines for the queen and the f1 bishop. Black does not copy it. }
+1... c6
+{ [%eval 0.37] [%cal Gc6d5] Prepares ...d5 with a pawn from the side. Unlike ...e6 in the French, this keeps the diagonal of the bishop on c8 open, which is the whole point of the Caro-Kann. The cost is a tempo. }
+2. d4
+{ [%eval 0.49] A second central pawn. White now has a broad centre, and Black must challenge it. }
+2... d5
+{ [%eval 0.42] The point of ...c6. The pawn on d5 hits e4 and is backed by the pawn on c6, so it cannot be won easily. Black has a solid centre, and the next plan is to get the bishop out and then play ...e6. }
+3. Nc3 { [%eval 0.39] The Classical setup. White defends e4 with a piece. } (
+3. e5
+{ [%eval 0.37] The Advance Variation. White grabs space and shuts the bishop's diagonal, so Black has to act at once. The standard reply is to bring the bishop out before ...e6, then attack White's pawn chain from its base with ...c5. }
 3... Bf5
 { [%eval 0.46] [%cal Gc8f5] The same idea: the bishop comes out before ...e6. }
-4. Nf3 { [%eval 0.43] } 4... e6 { [%eval 0.48] } 5. Be2 { [%eval 0.45] } 5...
+4. Nf3 { [%eval 0.43] White develops and guards e5 and d4. } 4... e6
+{ [%eval 0.48] Now that the bishop is outside the chain, ...e6 is safe. It supports d5 and opens the f8 bishop. }
+5. Be2 { [%eval 0.45] White develops the bishop and prepares to castle. } 5...
 c5
-{ [%eval 0.53] [%cal Gc6c5] The standard counter. Black attacks the base of White's pawn chain at d4. }
-6. Be3 { [%eval 0.44] } 6... cxd4 { [%eval 0.59] } 7. Nxd4
+{ [%eval 0.53] [%cal Gc6c5] The standard counter. Black attacks the base of White's pawn chain at d4. If White's centre falls apart, the pawn on e5 becomes weak and the c8 bishop was never locked in. }
+6. Be3
+{ [%eval 0.44] Another defender of d4, so White can keep the centre when Black takes on it. }
+6... cxd4
+{ [%eval 0.59] Black takes on d4, which opens the c-file and removes the base of White's pawn chain. }
+7. Nxd4
 { [%eval 0.47] The engine gives White a small edge here, as it does in most Advance lines. Black is solid and has a clear plan. }
-7... Ne7 { [%eval 0.49] } ) ( 3. exd5
+7... Ne7
+{ [%eval 0.49] The knight develops and heads for c6 or g6, where it can pressure the pawn on e5. }
+) ( 3. exd5
 { [%eval 0.25] The Exchange Variation. The pawn structure is symmetrical, and Black has an easy game. }
-3... cxd5 $10 { [%eval 0.23] } 4. Bd3 { [%eval 0.17] } 4... Nc6
-{ [%eval 0.20] } 5. c3 { [%eval 0.16] } 5... Nf6 { [%eval 0.20] } 6. Bf4
-{ [%eval 0.19] } 6... Bg4 $14 { [%eval 0.26] } 7. Qb3 { [%eval 0.25] } 7... Qd7
-{ [%eval 0.29] } 8. Nd2 { [%eval 0.27] } 8... e6 $10 { [%eval 0.20] } ) 3...
-dxe4 { [%eval 0.37] } 4. Nxe4 $10 { [%eval 0.24] } 4... Bf5
-{ [%eval 0.23] [%cal Gc8f5] The point of the opening. The bishop comes out before ...e6 closes it in. }
+3... cxd5 $10
+{ [%eval 0.23] Black recaptures with the c-pawn. The structure is symmetrical, and White has no obvious way to attack. Black plays ...Nc6, ...Nf6 and ...Bg4, and the position is easy to play. White's most testing idea is the Panov Attack with c4, where the pawn structure changes. }
+4. Bd3
+{ [%eval 0.17] White develops the bishop to its best diagonal, aimed at h7. }
+4... Nc6 { [%eval 0.20] Develops and pressures the pawn on d4. } 5. c3
+{ [%eval 0.16] Solidifies d4 and makes room for the queen on b3 or c2. } 5...
+Nf6 { [%eval 0.20] Develops the knight, which controls e4 and d5. } 6. Bf4
+{ [%eval 0.19] White develops the bishop before e3 can close it in. It eyes c7 and the b8 corner. }
+6... Bg4 $14
+{ [%eval 0.26] Black does the same with the bishop. With f3 and e2 empty, it attacks the queen on d1. }
+7. Qb3
+{ [%eval 0.25] The queen steps out of the attack and hits the pawn on b7 at the same time. }
+7... Qd7 { [%eval 0.29] The queen defends b7 and connects Black's pieces. } 8.
+Nd2
+{ [%eval 0.27] White develops the last piece and supports a later e4 or Ngf3. }
+8... e6 $10
+{ [%eval 0.20] Black solidifies d5 and opens the f8 bishop. The position is balanced. }
+) 3... dxe4
+{ [%eval 0.37] Black takes the pawn so that White has to recapture, which gives up White's centre pawn. }
+4. Nxe4 $10
+{ [%eval 0.24] White recaptures with the knight, which now stands well in the centre and eyes f6 and g5. }
+4... Bf5
+{ [%eval 0.23] [%cal Gc8f5] The point of the opening. The bishop comes out before ...e6 closes it in. This is the Classical Variation, the most popular main line and long considered the best play for both sides. }
 ( 4... Nd7 $14
-{ [%eval 0.37] The Karpov Variation. The knight prepares ...Ngf6, to trade off White's knight on e4 without doubling Black's pawns. }
-5. Ng5 { [%eval 0.38] } 5... Ngf6 { [%eval 0.45] } 6. Bd3 { [%eval 0.45] } 6...
-e6 { [%eval 0.51] } 7. N1f3 { [%eval 0.42] } 7... Bd6 { [%eval 0.42] } 8. Qe2
-{ [%eval 0.49] } 8... h6 { [%eval 0.37] } 9. Ne4 { [%eval 0.41] } 9... Nxe4
-{ [%eval 0.38] } 10. Qxe4 { [%eval 0.40] } 10... Qc7 { [%eval 0.53] } ) 5. Ng3
-$14 { [%eval 0.37] } 5... Bg6
-{ [%eval 0.34] The bishop keeps its diagonal and goes to g6. } 6. h4
+{ [%eval 0.37] The Karpov Variation. The knight prepares ...Ngf6, to trade White's knight without doubling Black's pawns and without having to put the bishop on g6. One trap to know: after 5.Qe2, Black must play 5...Ndf6. The natural 5...Ngf6?? loses to 6.Nd6#, smothered mate. }
+5. Ng5
+{ [%eval 0.38] The knight steps out of the way of ...Ngf6 and points at f7 and h7. }
+5... Ngf6
+{ [%eval 0.45] Black develops the second knight, which now guards h7 and eyes e4 and g4. }
+6. Bd3
+{ [%eval 0.45] The bishop comes out on its best diagonal, aimed at the kingside, and supports the knights. }
+6... e6
+{ [%eval 0.51] Solid. It opens the diagonal for the f8 bishop. The c8 bishop is still at home and comes out later. }
+7. N1f3
+{ [%eval 0.42] The last knight develops from g1. It is written N1f3 because both knights could go to f3. }
+7... Bd6 { [%eval 0.42] The bishop develops with an eye on h2 and guards e5. }
+8. Qe2
+{ [%eval 0.49] White develops the queen, getting ready to castle and to bring the knights into play. }
+8... h6 { [%eval 0.37] The pawn attacks the knight on g5, which has to leave. }
+9. Ne4
+{ [%eval 0.41] The knight goes back to e4 and offers a trade of knights. } 9...
+Nxe4
+{ [%eval 0.38] Black trades off White's active knight. Fewer pieces make life easier for the side with less space. }
+10. Qxe4
+{ [%eval 0.40] White retakes with the queen, which is strong in the centre but can become a target. }
+10... Qc7
+{ [%eval 0.53] Black develops the queen to guard e5 and prepare ...b6 and ...Bb7. Black is solid, and the last bishop will come out soon. }
+) 5. Ng3 $14
+{ [%eval 0.37] The knight attacks the bishop on f5, so Black must decide where it goes. }
+5... Bg6 { [%eval 0.34] The bishop keeps its diagonal and goes to g6. } 6. h4
 { [%eval 0.36] [%cal Gh4h5] Threatens h5, which would chase the bishop away. }
 6... h6 { [%eval 0.41] Gives the bishop the square h7. } 7. Nf3
-{ [%eval 0.34] } 7... Nd7 { [%eval 0.43] } 8. h5 { [%eval 0.44] } 8... Bh7
-{ [%eval 0.47] } 9. Bd3
+{ [%eval 0.34] White develops a piece and brings the knight toward the kingside, where the h-pawn is heading. }
+7... Nd7
+{ [%eval 0.43] Develops the knight and prepares ...Ngf6. If White's knight ever takes on f6, the knight on d7 retakes and Black's pawns stay healthy. }
+8. h5
+{ [%eval 0.44] The pawn pushes again and takes the g6 square, so the bishop cannot stay there. }
+8... Bh7
+{ [%eval 0.47] The bishop retreats to h7. It is safe from the pawn and still looks down the diagonal. }
+9. Bd3
 { [%eval 0.49] Offers to trade the bishops, which Black is happy to do. } 9...
-Bxd3 { [%eval 0.45] } 10. Qxd3 { [%eval 0.41] } 10... e6
-{ [%eval 0.47] Now that the bishop has been traded, ...e6 is safe. Black is solid, with no weaknesses. }
-11. Bf4 { [%eval 0.27] } 11... Ngf6 { [%eval 0.52] } 12. O-O-O { [%eval 0.49] }
+Bxd3
+{ [%eval 0.45] Black accepts the trade. The bishop already did its job by getting out early, and it is traded before ...e6 shuts it in. Trading off a piece also helps the side with less space. }
+10. Qxd3
+{ [%eval 0.41] White recaptures with the queen, which now eyes the diagonal toward h7. Nothing is hanging, so Black can finish developing. }
+10... e6
+{ [%eval 0.47] Now that the bishop has been traded, ...e6 is safe. Black is solid with no weak points. A typical plan from here is ...Ngf6, ...Be7 and ...c5, hitting the centre. }
+11. Bf4
+{ [%eval 0.27] White develops the last minor piece and eyes c7 and d6. } 11...
+Ngf6
+{ [%eval 0.52] Black finishes developing. The knight attacks the pawn on h5 and covers d5 and e4. }
+12. O-O-O
+{ [%eval 0.49] White castles queenside, away from the advanced kingside pawns. The kings are on opposite sides. }
 12... Be7 { [%eval 0.53] A solid, playable position for Black. } *
-

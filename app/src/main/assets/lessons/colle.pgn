@@ -1,0 +1,65 @@
+[Event "Colle System"]
+[Site "?"]
+[Date "????.??.??"]
+[Round "?"]
+[White "?"]
+[Black "?"]
+[Result "*"]
+[ECO "D05"]
+[Learn "white"]
+
+{ The Colle System. White builds a solid set-up with d4, Nf3, e3, Bd3 and c3, castles, and then plays e4 at the right moment. The pieces come to the same squares whatever Black does, so it is easy to learn, but it only works if you actually play the e4 break; without it the position goes dead. You play White. }
+1. d4
+{ [%eval 0.25] White takes space in the centre and opens the c1 bishop and the queen. }
+1... d5 { [%eval 0.27] Black does the same. } 2. Nf3
+{ [%eval 0.26] Develops a knight, defends d4 and prepares to castle. } 2... Nf6
+{ [%eval 0.27] Black develops. } ( 2... Bf5
+{ [%eval 0.34] Black brings the bishop out before ...e6, the anti-Colle idea. White must be ready to trade bishops with Bd3 and keep the pawn structure healthy. }
+3. e3 { [%eval 0.07] White still plays the Colle. } 3... e6
+{ [%eval 0.08] Black prepares to develop. } 4. Bd3
+{ [%eval 0.02] White challenges the bishop, which can be traded. } 4... Bxd3
+{ [%eval 0.17] Black trades. } 5. Qxd3
+{ [%eval 0.19] White recaptures with the queen, leaving the pawn structure healthy. }
+5... Nf6 { [%eval 0.51] Black develops. } 6. O-O
+{ [%eval 0.11] White castles. } 6... Bd6 { [%eval 0.72] Black develops. } 7. c4
+$10 { [%eval 0.22] White takes space on the queenside and prepares Nc3. } ) (
+2... Nc6
+{ [%eval 0.54] The Chigorin Defence. Black develops a piece instead of defending d5 with a pawn. White can play e3 and Bb5 to put pressure on the knight, and then c4 to attack d5. }
+3. e3 { [%eval 0.45] White keeps the Colle set-up. } 3... Nf6
+{ [%eval 0.51] Black develops. } 4. Bb5
+{ [%eval 0.27] White pins the knight and develops. This takes d5's defender. }
+4... Bd7 { [%eval 0.38] Black unpins. } 5. O-O { [%eval 0.33] White castles. }
+5... e6 { [%eval 0.42] Black solidifies. } 6. c4 $10
+{ [%eval 0.14] White attacks the d5 pawn and the centre. } ) 3. e3
+{ [%eval 0.15] The Colle. White opens the f1 bishop and builds a solid centre. }
+3... e6 { [%eval 0.12] Black does the same. } 4. Bd3
+{ [%eval 0.12] The bishop looks at h7 and, together with the knight on f3, supports the break that White is waiting for. Remember the plan of the system: pawns on d4 and e3, bishop on d3, knights on f3 and d2, castle, then e4. }
+4... c5 { [%eval 0.22] Black challenges the centre at once. } ( 4... Nbd7
+{ [%eval 0.20] Black develops without pushing the c-pawn. } 5. Nbd2
+{ [%eval 0.15] White develops. } 5... Bd6 { [%eval 0.13] Black develops. } 6.
+O-O { [%eval 0.21] White castles. } 6... O-O { [%eval 0.15] Black castles. } 7.
+e4 { [%eval 0.04] The same break works here. } 7... dxe4
+{ [%eval 0.10] Black takes. } 8. Nxe4 { [%eval 0.10] White recaptures. } 8...
+Nxe4 { [%eval 0.09] Black trades knights. } 9. Bxe4 $10
+{ [%eval 0.09] The bishop recaptures with a strong centre piece aimed at h7 and b7. }
+) 5. c3
+{ [%eval 0.02] Supports d4 and also stops ...Nb4, which would hit the bishop. The queen gets c2, and the knight on b1 will go to d2. This is the full Colle setup. }
+( 5. b3
+{ [%eval 0.16] The Colle-Zukertort. The bishop goes to b2 and the c-pawn stays at home, so White does not need c3. The long diagonal is open, and White can follow with Ne5 and an attack on the kingside. Keep the Greek gift Bxh7+ in mind, but check it concretely, because it often fails. }
+5... Nc6 { [%eval 0.17] Black develops. } 6. O-O
+{ [%eval 0.16] White castles. } 6... Bd6 { [%eval 0.26] Black develops. } 7.
+Bb2
+{ [%eval 0.15] The bishop goes to the long diagonal and supports the e4 break. }
+7... O-O { [%eval 0.26] Black castles. } 8. Nbd2 $10
+{ [%eval 0.08] The knight comes to d2 and e4 is ready. } ) 5... Nc6
+{ [%eval 0.22] Black develops. } 6. Nbd2
+{ [%eval 0.08] The knight comes to d2 so that the bishop and the knights all support e4. Note that it blocks the queen's defence of the bishop on d3, so be careful about tricks against that bishop before you castle. }
+6... Bd6 { [%eval 0.26] Black develops and aims at h2. } 7. O-O
+{ [%eval 0.15] White castles. } 7... O-O { [%eval 0.12] Black castles. } 8.
+dxc5 { [%eval 0.13] White takes and opens the d-file for the break to come. }
+8... Bxc5 { [%eval 0.12] Black recaptures. } 9. e4
+{ [%eval 0.00] [%cal Ge3e4] The point of the whole system. White castles first, takes on c5 to deflect Black's bishop, and then pushes e4 with the pieces all supporting it. If White never gets e4 in, Black's ...e5 equalises and the game goes dead, which is the main reason the Colle fails. }
+9... dxe4 { [%eval 0.51] Black takes. } 10. Nxe4
+{ [%eval 0.53] White recaptures with the knight and has a lead in activity. }
+10... Be7 $14
+{ [%eval 0.53] Black retreats the bishop and keeps the position solid. } *

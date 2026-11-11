@@ -43,6 +43,8 @@ data class GamesUiState(
     val error: String? = null,
     /** False until we know what the list is: the saved copy has been read, or a fetch has finished. Until then, an empty list means nothing. */
     val ready: Boolean = false,
+    /** What is searched, filtered and sorted. Kept while the app runs, not between launches. */
+    val query: GameQuery = GameQuery(),
 )
 
 class GamesViewModel : ViewModel() {
@@ -67,6 +69,8 @@ class GamesViewModel : ViewModel() {
             publish()
             if (settings.value.hasAccounts) refresh()
         }
+        // A game finished against Maia joins the list.
+        viewModelScope.launch { Graph.play.gamesChanged.collect { publish() } }
         viewModelScope.launch {
             settings.state.collect { s ->
                 val now = s.chesscomUser.trim() to s.lichessUser.trim()
@@ -81,6 +85,8 @@ class GamesViewModel : ViewModel() {
             }
         }
     }
+
+    fun setQuery(change: GameQuery.() -> GameQuery) { _state.value = _state.value.let { it.copy(query = it.query.change()) } }
 
     /** Reads the review database again, so accuracies appear after a game is reviewed. */
     fun reload() {
@@ -126,13 +132,12 @@ class GamesViewModel : ViewModel() {
     private suspend fun publish() {
         reviewed = repo.getAllGames().associateBy { it.key }
         val (chesscom, lichess) = users
-        val items = known.values
+        val online = known.values
             .filter { (it.source == "chesscom" && chesscom.isNotEmpty()) || (it.source == "lichess" && lichess.isNotEmpty()) }
-            .sortedByDescending { it.date }
-            .map { g ->
-                val review = reviewed[g.key]
-                GameItem(g, if (g.source == "chesscom") chesscom else lichess, review?.accuracy, review != null)
-            }
+            .map { g -> GameItem(g, if (g.source == "chesscom") chesscom else lichess, reviewed[g.key]?.accuracy, reviewed.containsKey(g.key)) }
+        // Games played here, against Maia, need no account.
+        val played = Graph.play.games().map { g -> GameItem(g, PlayViewModel.ME, reviewed[g.key]?.accuracy, reviewed.containsKey(g.key)) }
+        val items = (online + played).sortedByDescending { it.game.date }
         _state.value = _state.value.copy(items = items, ready = items.isNotEmpty() || fetchedOnce || !(chesscom.isNotEmpty() || lichess.isNotEmpty()))
     }
 

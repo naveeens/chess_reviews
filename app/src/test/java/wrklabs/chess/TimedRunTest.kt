@@ -54,4 +54,22 @@ class TimedRunTest {
         assertEquals("5 s", Pace.label(6))
         assertEquals(10000, Pace.limit(Pace.START_LEVEL))
     }
+
+    @Test fun everyAnswerIsRecordedInOrderWithItsTiming() {
+        var n = 0
+        val run = TimedRun(3) { n++ }
+        run.answer(true, ms = 1200)
+        run.answer(false, late = true, ms = 10000)
+        run.answer(false, ms = 800)
+        assertEquals(listOf(0, 1, 2), run.attempts.map { it.problem })
+        assertEquals(listOf(true, false, false), run.attempts.map { it.right })
+        assertEquals(listOf(false, true, false), run.attempts.map { it.late })
+        assertEquals(listOf(1200L, 10000L, 800L), run.attempts.map { it.ms })
+    }
+
+    @Test fun historyKeepsTheLastFiveScoresOldestFirst() {
+        var h = emptyList<Int>()
+        (1..7).forEach { h = Pace.pushed(h, it) }
+        assertEquals(listOf(3, 4, 5, 6, 7), h)
+    }
 }

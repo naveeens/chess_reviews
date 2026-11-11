@@ -23,13 +23,14 @@ android {
         applicationId = "wrklabs.chess"
         minSdk = 28
         targetSdk = 37
-        versionCode = 3
-        versionName = "1.2"
+        versionCode = 4
+        versionName = "1.4"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         ndk {
-            abiFilters.add("arm64-v8a")
+            // Phones are arm64. `-Pabi=x86_64` builds for the emulator, which runs arm64 code only through a translator that ONNX Runtime does not survive.
+            abiFilters.addAll(((findProperty("abi") as String?) ?: "arm64-v8a").split(","))
         }
     }
 
@@ -88,6 +89,8 @@ dependencies {
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.billing.ktx)
     implementation(libs.androidx.datastore.preferences)
+    // Maia-3, the model of how people at a given rating move.
+    implementation("com.microsoft.onnxruntime:onnxruntime-android:1.31.1")
 
     testImplementation(libs.junit)
     androidTestImplementation(platform(libs.androidx.compose.bom))

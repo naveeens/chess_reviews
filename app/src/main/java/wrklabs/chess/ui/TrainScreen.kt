@@ -34,7 +34,7 @@ import wrklabs.chess.ui.theme.Display
 import wrklabs.chess.ui.theme.Palette
 
 @Composable
-fun TrainScreen(vm: TrainViewModel, puzzles: PuzzleViewModel, settings: AppSettings, onOpenGames: () -> Unit) {
+fun TrainScreen(vm: TrainViewModel, puzzles: PuzzleViewModel, settings: AppSettings, onOpenGames: () -> Unit, onDrillOpen: (Boolean) -> Unit = {}, onReviewGame: (wrklabs.chess.importer.ImportedGame, String) -> Unit = { _, _ -> }) {
     val state by vm.trainState.collectAsState()
     val summary by vm.summary.collectAsState()
     val c = Palette.colors
@@ -43,7 +43,14 @@ fun TrainScreen(vm: TrainViewModel, puzzles: PuzzleViewModel, settings: AppSetti
     // Opening positions that are due again, read each time the hub is shown.
     val lineDue by produceState(0, drill) { value = wrklabs.chess.Graph.cards.getLineSummary().due }
     BackHandler(enabled = drill != null) { drill = null }
+    // A position sent from a review or a lesson opens Play.
+    val playRequest by wrklabs.chess.play.PlayLaunch.request.collectAsState()
+    LaunchedEffect(playRequest) { if (playRequest != null) drill = Drill.Play }
+    // A drill or lesson takes the whole screen; the tab bar comes back with the hub.
+    LaunchedEffect(drill != null) { onDrillOpen(drill != null) }
+    DisposableEffect(Unit) { onDispose { onDrillOpen(false) } }
 
+    val lessons = remember { LessonChrome() }
     Column(Modifier.fillMaxSize()) {
         val open = drill
         if (open == null) {
@@ -53,21 +60,26 @@ fun TrainScreen(vm: TrainViewModel, puzzles: PuzzleViewModel, settings: AppSetti
         Row(Modifier.fillMaxWidth().padding(start = 4.dp, end = 8.dp, top = 6.dp, bottom = 6.dp), verticalAlignment = Alignment.CenterVertically) {
             IconTap(Icons.AutoMirrored.Filled.ArrowBack, "Back to Train", { drill = null }, size = 44)
             Column(Modifier.weight(1f).padding(start = 4.dp)) {
-                Text(open.title, style = MaterialTheme.typography.headlineSmall, color = c.text)
+                Text(open.title, style = MaterialTheme.typography.headlineSmall, color = c.text, maxLines = 1)
                 Text(
                     if (open == Drill.Puzzles) "${puzzleSummary.due} due · ${puzzleSummary.total} puzzles · ${puzzleSummary.learned} learned"
                     else if (open == Drill.Openings) "Lessons with variations"
+                    else if (open == Drill.Play) "Against Maia, a bot that moves like a person"
                     else if (open == Drill.Squares) "Timed sets of ten"
                     else if (open == Drill.Vision) "Attacked, hanging, recall"
                     else if (open == Drill.Notation) "Lines from real puzzles"
                     else "${summary.due} due · ${summary.total} mistakes · ${summary.mastered} learned",
-                    style = MaterialTheme.typography.bodySmall, color = c.muted,
+                    style = MaterialTheme.typography.bodySmall, color = c.muted, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
                 )
             }
             if (open == Drill.Mistakes || open == Drill.Puzzles) IconTap(Icons.Default.Refresh, "Reload", { vm.loadSession(); puzzles.loadSession() })
+            if (open == Drill.Openings && lessons.lessonOpen) {
+                Segmented(listOf(false to "Learn", true to "Practise"), lessons.practise, { lessons.practise = it }, Modifier.width(176.dp))
+            }
         }
         if (open == Drill.Puzzles) { PuzzleSection(puzzles, settings); return@Column }
-        if (open == Drill.Openings) { OpeningsSection(settings); return@Column }
+        if (open == Drill.Openings) { OpeningsSection(settings, lessons); return@Column }
+        if (open == Drill.Play) { PlaySection(settings, onReview = onReviewGame); return@Column }
         if (open == Drill.Squares) { SquareSection(settings); return@Column }
         if (open == Drill.Vision) { VisionSection(settings); return@Column }
         if (open == Drill.Notation) { NotationSection(settings); return@Column }
@@ -89,6 +101,7 @@ fun TrainScreen(vm: TrainViewModel, puzzles: PuzzleViewModel, settings: AppSetti
                         Text("You played ${card.playedSan}${cls?.let { " (${it.label})" } ?: ""} vs ${card.opponent}", style = MaterialTheme.typography.bodySmall, color = c.muted)
                     }
                 }
+                Column(Modifier.fillMaxWidth().weight(1f).verticalScroll(rememberScrollState())) {
                 val arrows = remember(q.status, q.bestShown, q.whyStarted, card.bestUci) {
                     if (((q.status == CardAnswerStatus.Wrong && !q.whyStarted) || (q.status == CardAnswerStatus.Better && q.bestShown)) && card.bestUci.length >= 4) {
                         listOf(EngineArrow(Square.fromName(card.bestUci.substring(0, 2)), Square.fromName(card.bestUci.substring(2, 4)), c.win))
@@ -114,7 +127,7 @@ fun TrainScreen(vm: TrainViewModel, puzzles: PuzzleViewModel, settings: AppSetti
                 q.promotion?.let { PromotionPicker(q.board.turn, vm::choosePromotion, vm::cancelPromotion) }
                 Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     when (q.status) {
-                        CardAnswerStatus.Unanswered -> Text("Play your move on the board.", style = MaterialTheme.typography.bodyMedium, color = c.muted)
+                        CardAnswerStatus.Unanswered -> Text("Play your move on the board.", style = MaterialTheme.typography.titleMedium, color = c.text)
                         CardAnswerStatus.Checking -> Text("Checking your move…", style = MaterialTheme.typography.bodyMedium, color = c.muted)
                         CardAnswerStatus.Better -> RCard(color = c.brandCard) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -123,12 +136,6 @@ fun TrainScreen(vm: TrainViewModel, puzzles: PuzzleViewModel, settings: AppSetti
                                     Text(if (q.bestShown) "Best was ${card.bestSan}." else "Try again, or see what it was. This card isn't counted yet.", style = MaterialTheme.typography.bodySmall, color = c.brandCardText)
                                 }
                             }
-                            Spacer(Modifier.height(10.dp))
-                            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                RButton("Retry", vm::retryCurrentCard, compact = true)
-                                if (!q.bestShown) RButton("Show best", vm::showBest, style = ButtonStyle.Tonal, compact = true)
-                                RButton("Next", vm::nextCard, style = ButtonStyle.Tonal, compact = true)
-                            }
                         }
                         CardAnswerStatus.Correct -> RCard(color = c.win.copy(alpha = 0.16f)) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -136,7 +143,6 @@ fun TrainScreen(vm: TrainViewModel, puzzles: PuzzleViewModel, settings: AppSetti
                                     Text("That's the move.", style = MaterialTheme.typography.titleMedium, color = c.win)
                                     Text("You'll see it again ${comesBack(CardRepository.INTERVAL_DAYS[minOf(CardRepository.MAX_BOX, card.box + 1)])}.", style = MaterialTheme.typography.bodySmall, color = c.muted)
                                 }
-                                RButton("Next", vm::nextCard, icon = Icons.AutoMirrored.Filled.ArrowForward)
                             }
                         }
                         CardAnswerStatus.Wrong -> RCard(color = c.danger.copy(alpha = 0.16f)) {
@@ -146,14 +152,24 @@ fun TrainScreen(vm: TrainViewModel, puzzles: PuzzleViewModel, settings: AppSetti
                                     (if (q.whyStarted) q.whyText else "You'll see it again today.")?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = c.muted) }
                                 }
                             }
-                            Spacer(Modifier.height(10.dp))
-                            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                RButton("Retry", vm::retryCurrentCard, style = ButtonStyle.Tonal, compact = true)
-                                if (!q.whyStarted) RButton("Show why", vm::showWhy, style = ButtonStyle.Tonal, compact = true, icon = Icons.Default.Lightbulb)
-                                RButton("Next", vm::nextCard, compact = true)
-                            }
                         }
                     }
+                }
+                }
+                // What to do next, pinned at the bottom: Next is always the big one.
+                when (q.status) {
+                    CardAnswerStatus.Better -> ActionBar {
+                        RButton("Retry", vm::retryCurrentCard, Modifier.weight(1f), style = ButtonStyle.Tonal)
+                        if (!q.bestShown) RButton("Show best", vm::showBest, Modifier.weight(1f), style = ButtonStyle.Tonal)
+                        RButton("Next", vm::nextCard, Modifier.weight(1f))
+                    }
+                    CardAnswerStatus.Correct -> ActionBar { RButton("Next", vm::nextCard, Modifier.fillMaxWidth(), icon = Icons.AutoMirrored.Filled.ArrowForward) }
+                    CardAnswerStatus.Wrong -> ActionBar {
+                        RButton("Retry", vm::retryCurrentCard, Modifier.weight(1f), style = ButtonStyle.Tonal)
+                        if (!q.whyStarted) RButton("Show why", vm::showWhy, Modifier.weight(1f), style = ButtonStyle.Tonal, icon = Icons.Default.Lightbulb)
+                        RButton("Next", vm::nextCard, Modifier.weight(1f))
+                    }
+                    else -> Unit
                 }
             }
         }
@@ -191,6 +207,7 @@ private fun ColumnScope.PuzzleSection(vm: PuzzleViewModel, settings: AppSettings
                     Text("#${puzzle.seq} · ${puzzle.level} · ${puzzle.rating} · $place", style = MaterialTheme.typography.bodySmall, color = c.muted)
                 }
             }
+            Column(Modifier.fillMaxWidth().weight(1f).verticalScroll(rememberScrollState())) {
             val arrows = remember(q.status, q.step, q.whyStarted) {
                 if (q.status == PuzzleStatus.Wrong && !q.whyStarted && q.expected.length >= 4) {
                     listOf(EngineArrow(Square.fromName(q.expected.substring(0, 2)), Square.fromName(q.expected.substring(2, 4)), c.win))
@@ -215,7 +232,7 @@ private fun ColumnScope.PuzzleSection(vm: PuzzleViewModel, settings: AppSettings
             q.promotion?.let { PromotionPicker(q.board.turn, vm::choosePromotion, vm::cancelPromotion) }
             Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 when (q.status) {
-                    PuzzleStatus.Playing -> Text(if (q.replying) "…" else "Play your move on the board.", style = MaterialTheme.typography.bodyMedium, color = c.muted)
+                    PuzzleStatus.Playing -> Text(if (q.replying) "…" else "Play your move on the board.", style = MaterialTheme.typography.titleMedium, color = c.text)
                     PuzzleStatus.Solved -> RCard(color = c.win.copy(alpha = 0.16f)) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Column(Modifier.weight(1f)) {
@@ -227,7 +244,6 @@ private fun ColumnScope.PuzzleSection(vm: PuzzleViewModel, settings: AppSettings
                                 )
                                 puzzleTags(puzzle.themes).takeIf { it.isNotEmpty() }?.let { Text(it.joinToString(" · "), style = MaterialTheme.typography.bodySmall, color = c.muted) }
                             }
-                            RButton("Next", vm::next, icon = Icons.AutoMirrored.Filled.ArrowForward)
                         }
                     }
                     PuzzleStatus.Wrong -> RCard(color = c.danger.copy(alpha = 0.16f)) {
@@ -235,14 +251,18 @@ private fun ColumnScope.PuzzleSection(vm: PuzzleViewModel, settings: AppSettings
                             Text("Best was ${q.bestSan ?: q.expected}", style = MaterialTheme.typography.titleMedium, color = c.danger)
                             (if (q.whyStarted) q.whyText else "You'll see it again today.")?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = c.muted) }
                         }
-                        Spacer(Modifier.height(10.dp))
-                        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                            RButton("Retry", vm::retry, style = ButtonStyle.Tonal, compact = true)
-                            if (!q.whyStarted) RButton("Show why", vm::showWhy, style = ButtonStyle.Tonal, compact = true, icon = Icons.Default.Lightbulb)
-                            RButton("Next", vm::next, compact = true)
-                        }
                     }
                 }
+            }
+            }
+            when (q.status) {
+                PuzzleStatus.Solved -> ActionBar { RButton("Next", vm::next, Modifier.fillMaxWidth(), icon = Icons.AutoMirrored.Filled.ArrowForward) }
+                PuzzleStatus.Wrong -> ActionBar {
+                    RButton("Retry", vm::retry, Modifier.weight(1f), style = ButtonStyle.Tonal)
+                    if (!q.whyStarted) RButton("Show why", vm::showWhy, Modifier.weight(1f), style = ButtonStyle.Tonal, icon = Icons.Default.Lightbulb)
+                    RButton("Next", vm::next, Modifier.weight(1f))
+                }
+                else -> Unit
             }
         }
     }
@@ -253,6 +273,7 @@ enum class Drill(val title: String, val blurb: String) {
     Mistakes("Your mistakes", "Positions from your own games where you went wrong. Find the move you missed."),
     Puzzles("Puzzles", "A bundled set of tactics, a few new ones a day and the ones that come back."),
     Openings("Openings", "Step through opening lessons, with the ideas behind the moves and the lines you will meet."),
+    Play("Play", "A game against Maia, a bot that plays the way people of a rating play, mistakes included. Review it afterwards."),
     Squares("Squares", "Find, name and colour squares, knight moves and diagonals, in timed sets of ten. The clock gets shorter as you get them right."),
     Vision("Vision", "Spot attacked and hanging pieces in real positions, and rebuild a position from memory."),
     Notation("Notation", "Read a line in algebraic notation and play it on the board."),
@@ -273,6 +294,7 @@ private fun TrainHub(due: Int, mistakes: wrklabs.chess.db.CardSummary, puzzles: 
                 Drill.Mistakes -> mistakes.due to "${mistakes.total} mistakes · ${mistakes.mastered} learned"
                 Drill.Puzzles -> puzzles.due to "${puzzles.total} puzzles · ${puzzles.learned} learned"
                 Drill.Openings -> openingsDue to "Lessons with variations"
+                Drill.Play -> 0 to "600 to 2600, no clock"
                 Drill.Squares -> 0 to "Timed sets of ten"
                 Drill.Vision -> 0 to "Attacked, hanging, recall"
                 Drill.Notation -> 0 to "Lines from real puzzles"

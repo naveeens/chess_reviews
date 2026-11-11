@@ -31,8 +31,12 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import wrklabs.chess.Graph
 import wrklabs.chess.classifier.MoveClass
+import wrklabs.chess.maia.Human
+import wrklabs.chess.play.PlayLaunch
+import wrklabs.chess.play.PlayRequest
 import wrklabs.chess.classifier.MoveReview
 import wrklabs.chess.engine.PieceColor
+import wrklabs.chess.model.ChessBoard
 import wrklabs.chess.model.MoveNode
 import wrklabs.chess.model.PieceType
 import wrklabs.chess.model.ROOT_ID
@@ -194,6 +198,7 @@ private fun BoardScreen(s: ReviewUiState, vm: ReviewViewModel, settings: AppSett
     fun name(color: PieceColor) = info?.let { if (color == PieceColor.WHITE) it.white else it.black } ?: ""
     fun rating(color: PieceColor) = info?.let { if (color == PieceColor.WHITE) it.whiteRating else it.blackRating }
     fun accuracy(color: PieceColor) = s.report?.accuracy?.get(color)
+    fun seat(color: PieceColor) = Seat(name(color), rating(color), color, accuracy(color), scoreOf(color, result), if (settings.showMaterial) materialDiff(board, color) else null)
     val review = s.playedReview
     // The arrow shows the move the button offers once that deeper search is in; until then, the review's own.
     val arrowMove = if (!s.candidatesPending && s.playedNode.parentId != null) s.suggestion?.candidate?.uci else review?.bestMove
@@ -222,7 +227,9 @@ private fun BoardScreen(s: ReviewUiState, vm: ReviewViewModel, settings: AppSett
                 }
             }
 
-            PlayerBar(name(topColor), rating(topColor), topColor, accuracy(topColor), score = scoreOf(topColor, result), material = if (settings.showMaterial) materialDiff(board, topColor) else null)
+            // Everything under the title scrolls, for a phone too short to hold the board and the card; the toolbar stays.
+            BoardBody(footer = { Toolbar(s, vm, settings, onAnalyseFromHere) }) {
+            BoardWithSeats(seat(topColor), seat(bottomColor), EvalBar(s.score, s.orientation)) {
             ChessboardView(
                 modifier = Modifier.size(boardSize),
                 board = board,
@@ -245,12 +252,11 @@ private fun BoardScreen(s: ReviewUiState, vm: ReviewViewModel, settings: AppSett
                 onSquareClick = vm::onSquareClick,
                 onMove = vm::onDrag,
             )
+            }
             s.promotion?.let { PromotionPicker(board.turn, vm::choosePromotion, vm::cancelPromotion) }
-            EvalStrip(s.score, s.orientation)
-            PlayerBar(name(bottomColor), rating(bottomColor), bottomColor, accuracy(bottomColor), score = scoreOf(bottomColor, result), material = if (settings.showMaterial) materialDiff(board, bottomColor) else null)
 
-            Column(Modifier.weight(1f).fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Box(Modifier.padding(horizontal = 14.dp).padding(top = 4.dp)) { MoveCard(s, vm) }
+            Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Box(Modifier.padding(horizontal = 14.dp).padding(top = 4.dp)) { MoveCard(s, vm, settings.lineLength) }
                 MoveStrip(
                     s.strip, s.currentNodeId, s.report, vm::select, offGame = { it !in s.gameIds }, extraGrades = s.grades.mapValues { it.value.cls },
                     alternatives = { n -> n.parentId?.let { s.tree.nodes[it] }?.children.orEmpty().filter { it != n.id }.mapNotNull { s.tree.nodes[it] } },
@@ -265,9 +271,7 @@ private fun BoardScreen(s: ReviewUiState, vm: ReviewViewModel, settings: AppSett
                     }
                 }
             }
-
-            Hairline()
-            Toolbar(s, vm, settings, onAnalyseFromHere)
+            }
         }
     }
 
@@ -295,6 +299,26 @@ private fun bestArrow(showingBest: Boolean, r: MoveReview?, best: String?, enabl
     return listOf(EngineArrow(Square.fromName(uci.substring(0, 2)), Square.fromName(uci.substring(2, 4)), Color(0xFF4F9A3C)))
 }
 
+/**
+ * A game against Maia from the position on the board; for a move of yours that went wrong, from the position before it,
+ * as the player who made it. The flag says which of the two it is.
+ */
+internal fun playRequestFrom(s: ReviewUiState): Pair<PlayRequest, Boolean> {
+    val info = s.info
+    val node = s.currentNode
+    val parent = node.parentId?.let { s.tree.nodes[it] }
+    val opponentRating = info?.let { if (it.myColor == PieceColor.WHITE) it.blackRating else it.whiteRating }
+    val number = (node.ply + 1) / 2
+    val slip = s.playedReview?.cls in setOf(MoveClass.INACCURACY, MoveClass.MISTAKE, MoveClass.MISS, MoveClass.BLUNDER)
+    if (slip && parent != null && node.id in s.gameIds) {
+        val moverWhite = ChessBoard.fromFen(parent.fen).turn == PieceColor.WHITE
+        if (info?.myColor == null || (info.myColor == PieceColor.WHITE) == moverWhite) {
+            return PlayRequest(parent.fen, moverWhite, opponentRating, "Your game, before ${node.san} (move $number)") to true
+        }
+    }
+    return PlayRequest(node.fen, null, opponentRating, if (node.id == ROOT_ID) "Your game, from the start" else "Your game, after move $number") to false
+}
+
 // ── Toolbar ──
 
 @OptIn(ExperimentalFoundationApi::class)
@@ -303,11 +327,17 @@ private fun Toolbar(s: ReviewUiState, vm: ReviewViewModel, settings: AppSettings
     val c = Palette.colors
     val context = LocalContext.current
     var menu by remember { mutableStateOf(false) }
-    Row(Modifier.fillMaxWidth().height(56.dp).padding(horizontal = 6.dp), horizontalArrangement = Arrangement.SpaceAround, verticalAlignment = Alignment.CenterVertically) {
+    BoardToolbar {
         Box {
             IconTap(Icons.Default.Menu, "Menu", { menu = true }, size = 48)
             DropdownMenu(menu, { menu = false }, containerColor = c.cardHigh) {
                 DropdownMenuItem(text = { Text("Analyse from here") }, leadingIcon = { Icon(Icons.Default.Search, null) }, onClick = { menu = false; onAnalyseFromHere() })
+                val retry = playRequestFrom(s)
+                DropdownMenuItem(
+                    text = { Text(if (retry.second) "Try this move again" else "Play from here") },
+                    leadingIcon = { Icon(Icons.Default.PlayArrow, null) },
+                    onClick = { menu = false; PlayLaunch.request.value = retry.first },
+                )
                 DropdownMenuItem(text = { Text("Copy PGN") }, leadingIcon = { Icon(Icons.Default.ContentCopy, null) }, onClick = { menu = false; copyPgn(context, s) })
                 DropdownMenuItem(text = { Text("Clear variations") }, leadingIcon = { Icon(Icons.Default.Close, null) }, enabled = s.hasVariations, onClick = { menu = false; vm.clearVariations() })
                 DropdownMenuItem(text = { Text("Review again") }, leadingIcon = { Icon(Icons.Default.Refresh, null) }, enabled = !s.reviewing, onClick = { menu = false; vm.showSummary(); vm.review() })
@@ -320,15 +350,7 @@ private fun Toolbar(s: ReviewUiState, vm: ReviewViewModel, settings: AppSettings
             }
         }
         IconTap(Icons.Default.SwapVert, "Flip board", vm::flip, size = 48)
-        // A long press goes to the start or the end.
-        Box(
-            Modifier.size(48.dp).clip(CircleShape).combinedClickable(onClick = vm::previous, onLongClick = vm::first),
-            contentAlignment = Alignment.Center,
-        ) { Icon(Icons.AutoMirrored.Filled.NavigateBefore, "Previous move", tint = c.text, modifier = Modifier.size(28.dp)) }
-        Box(
-            Modifier.size(48.dp).clip(CircleShape).combinedClickable(onClick = vm::next, onLongClick = vm::last),
-            contentAlignment = Alignment.Center,
-        ) { Icon(Icons.AutoMirrored.Filled.NavigateNext, "Next move", tint = c.text, modifier = Modifier.size(28.dp)) }
+        StepButtons(vm::previous, vm::next, vm::first, vm::last)
     }
 }
 
@@ -345,7 +367,7 @@ private fun copyPgn(context: Context, s: ReviewUiState) {
  * engine's two moves for that position. A variation of yours gets the same card, graded once the engine has looked.
  */
 @Composable
-private fun MoveCard(s: ReviewUiState, vm: ReviewViewModel) {
+private fun MoveCard(s: ReviewUiState, vm: ReviewViewModel, lineLength: Int) {
     val node = s.playedNode
     val r = s.playedReview
     val atStart = s.currentNodeId == ROOT_ID
@@ -356,6 +378,10 @@ private fun MoveCard(s: ReviewUiState, vm: ReviewViewModel) {
     val note: String? = when {
         s.whyFrom != null -> s.whyText
         r == null && s.onBranch -> if (s.thinking) "The engine is replying…" else "The engine is looking at it…"
+        // How people at the player's rating handle this position, for the grades that are about choices.
+        r != null && !atStart && !s.onBranch -> s.human[node.id]?.let { h ->
+            Human.note(h, ReviewService.sanOf(s.tree.nodes[node.parentId]?.fen ?: node.fen, h.topUci), r.cls)
+        }
         else -> null
     }
     MoveCardView(
@@ -364,12 +390,18 @@ private fun MoveCard(s: ReviewUiState, vm: ReviewViewModel) {
         cls = r?.takeIf { !atStart }?.cls,
         lostPercent = r?.takeIf { it.cls != MoveClass.BOOK && it.cls != MoveClass.FORCED && it.loss >= 0.01 }?.let { (it.loss * 100).toInt() },
         note = note,
-        best = sug?.let { BestChoice(it.label, it.candidate.san, evalLabel(it.candidate.score), on = s.showingBest) },
+        best = sug?.let { sg ->
+            val parentFen = node.parentId?.let { s.tree.nodes[it]?.fen }
+            val mover = if (node.ply % 2 == 1) PieceColor.WHITE else PieceColor.BLACK
+            val line = remember(sg.candidate, parentFen, lineLength) { parentFen?.let { WhyLine.lineText(it, sg.candidate.pv, sg.candidate.score, mover, lineLength) } }
+            LineChoice(sg.label, evalLabel(sg.candidate.score), line, on = s.showingBest)
+        },
         bestPending = sug == null && s.candidatesPending && !atStart && !noAlternative && r?.bestMove != null,
-        whyLabel = if (r != null && r.cls in setOf(MoveClass.MISTAKE, MoveClass.MISS, MoveClass.BLUNDER)) "Show why" else null,
-        whyActive = s.whyFrom != null,
+        played = if (r != null && r.cls in setOf(MoveClass.MISTAKE, MoveClass.MISS, MoveClass.BLUNDER)) {
+            LineChoice("Played", "", s.playedLine?.takeIf { s.playedLineFor == node.id }, on = s.whyFrom != null)
+        } else null,
         onBest = { sug?.let { vm.showCandidate(it.candidate.uci) } },
-        onWhy = vm::showWhy,
+        onPlayed = vm::showWhy,
     )
 }
 

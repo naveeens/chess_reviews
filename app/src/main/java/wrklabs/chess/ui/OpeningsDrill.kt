@@ -32,6 +32,10 @@ import wrklabs.chess.db.DueLine
 import wrklabs.chess.training.LessonLibrary
 import wrklabs.chess.training.lineCardId
 import wrklabs.chess.training.parseLineCardId
+import wrklabs.chess.maia.Human
+import wrklabs.chess.play.PlayLaunch
+import wrklabs.chess.play.PlayRequest
+import wrklabs.chess.maia.HumanReplies
 import wrklabs.chess.training.LessonPractice
 import wrklabs.chess.training.PracticeResult
 import wrklabs.chess.training.label
@@ -39,9 +43,15 @@ import wrklabs.chess.training.lineTo
 import wrklabs.chess.training.signs
 import wrklabs.chess.ui.theme.Palette
 
+/** Which half of a lesson is showing, and whether one is open: the screen's app bar shows the switch, so it has to know. */
+class LessonChrome {
+    var practise by mutableStateOf(false)
+    var lessonOpen by mutableStateOf(false)
+}
+
 /** Opening lessons: pick a chapter, then walk its tree of moves with the notes beside the board. */
 @Composable
-fun ColumnScope.OpeningsSection(settings: AppSettings) {
+fun ColumnScope.OpeningsSection(settings: AppSettings, chrome: LessonChrome? = null) {
     val context = LocalContext.current
     val lessons by produceState<List<LessonEntry>?>(null) { value = LessonLibrary.load(context) }
     var open by rememberSaveable { mutableStateOf<String?>(null) }
@@ -50,10 +60,13 @@ fun ColumnScope.OpeningsSection(settings: AppSettings) {
     // The positions you got wrong that are due again; read again whenever you come back to the list.
     val due by produceState<List<DueLine>?>(null, open, reviewing) { value = if (open == null && !reviewing) Graph.cards.getDueLines(limit = 50) else value }
     BackHandler(enabled = entry != null || reviewing) { open = null; reviewing = false }
+    // Opening a lesson starts on Learn; the app bar's switch, when there is one, is the chrome's.
+    LaunchedEffect(entry?.key) { chrome?.lessonOpen = entry != null; chrome?.practise = false }
+    DisposableEffect(Unit) { onDispose { chrome?.lessonOpen = false } }
     when {
         lessons == null -> Box(Modifier.fillMaxWidth().padding(24.dp), contentAlignment = Alignment.Center) { CircularProgressIndicator(color = Palette.colors.brand) }
         reviewing -> LineReview(lessons.orEmpty(), due.orEmpty(), settings) { reviewing = false }
-        entry != null -> LessonViewer(entry, settings)
+        entry != null -> LessonViewer(entry, settings, chrome)
         else -> LessonList(lessons.orEmpty(), due.orEmpty().count { parseLineCardId(it.id) != null }, { open = it.key }, { reviewing = true })
     }
 }
@@ -109,16 +122,18 @@ private fun arrowOf(spec: String, c: wrklabs.chess.ui.theme.AppColors): EngineAr
 private enum class LessonMode { Learn, Practise }
 
 @Composable
-private fun LessonViewer(entry: LessonEntry, settings: AppSettings) {
-    var mode by rememberSaveable(entry.key) { mutableStateOf(LessonMode.Learn) }
-    Column(Modifier.fillMaxWidth()) {
-        Segmented(LessonMode.entries.map { it to it.name }, mode, { mode = it }, Modifier.padding(horizontal = 14.dp, vertical = 4.dp).fillMaxWidth())
+private fun ColumnScope.LessonViewer(entry: LessonEntry, settings: AppSettings, chrome: LessonChrome?) {
+    var own by rememberSaveable(entry.key) { mutableStateOf(LessonMode.Learn) }
+    val mode = if (chrome != null) (if (chrome.practise) LessonMode.Practise else LessonMode.Learn) else own
+    Column(Modifier.fillMaxWidth().weight(1f)) {
+        // On its own, the switch sits above the lesson; in the training screen it is in the app bar instead.
+        if (chrome == null) Segmented(LessonMode.entries.map { it to it.name }, mode, { own = it }, Modifier.padding(horizontal = 14.dp, vertical = 4.dp).fillMaxWidth())
         if (mode == LessonMode.Learn) LearnBody(entry, settings) else PractiseBody(entry, settings)
     }
 }
 
 @Composable
-private fun LearnBody(entry: LessonEntry, settings: AppSettings) {
+private fun ColumnScope.LearnBody(entry: LessonEntry, settings: AppSettings) {
     val c = Palette.colors
     val tree = entry.chapter.tree
     var nodeId by rememberSaveable(entry.key) { mutableStateOf(ROOT_ID) }
@@ -128,7 +143,16 @@ private fun LearnBody(entry: LessonEntry, settings: AppSettings) {
     val children = node.children.mapNotNull { tree.nodes[it] }
     val go = { id: String -> nodeId = id }
 
-    Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState())) {
+    // The way on is pinned at the bottom: the main line is always one tap away, and back one move beside it.
+    BoardBody(footer = {
+        val main = children.firstOrNull()
+    ActionBar {
+        IconTap(Icons.Default.Refresh, "Start of the lesson", { go(ROOT_ID) }, enabled = node.id != ROOT_ID, size = 48)
+        RButton("Back", { parent?.let { go(it.id) } }, Modifier.weight(1f), style = ButtonStyle.Tonal, enabled = parent != null)
+        if (main != null) RButton("Next: ${main.label()}", { go(main.id) }, Modifier.weight(2f), icon = Icons.AutoMirrored.Filled.ArrowForward)
+        else RButton("Back to the start", { go(ROOT_ID) }, Modifier.weight(2f))
+    }
+    }) {
         ChessboardView(
             modifier = Modifier.fillMaxWidth(),
             board = board,
@@ -140,23 +164,24 @@ private fun LearnBody(entry: LessonEntry, settings: AppSettings) {
             coordinates = settings.coordinates,
             interactive = false,
         )
-        Row(Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-            IconTap(Icons.Default.Refresh, "Start of the lesson", { go(ROOT_ID) }, enabled = node.id != ROOT_ID)
-            IconTap(Icons.AutoMirrored.Filled.ArrowBack, "Back one move", { parent?.let { go(it.id) } }, enabled = parent != null)
-            IconTap(Icons.AutoMirrored.Filled.ArrowForward, "Next move", { children.firstOrNull()?.let { go(it.id) } }, enabled = children.isNotEmpty())
-            Spacer(Modifier.weight(1f))
-            Text(if (node.id == ROOT_ID) "Start" else node.label() + node.signs().let { if (it.isEmpty()) "" else " $it" }, style = MaterialTheme.typography.titleSmall, color = c.text, fontWeight = FontWeight.Bold)
+        Row(Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+            Text(if (node.id == ROOT_ID) "Start" else node.label() + node.signs().let { if (it.isEmpty()) "" else " $it" }, style = MaterialTheme.typography.titleMedium, color = c.text, fontWeight = FontWeight.Bold)
         }
         Column(Modifier.padding(horizontal = 14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             node.comment?.takeIf { it.isNotBlank() }?.let { RCard(Modifier.fillMaxWidth(), color = c.brandCard) { Text(it, style = MaterialTheme.typography.bodyMedium, color = c.brandCardText) } }
             if (children.isEmpty()) {
                 Text("End of this line.", style = MaterialTheme.typography.bodyMedium, color = c.muted)
-                RButton("Back to the start", { go(ROOT_ID) }, style = ButtonStyle.Tonal, compact = true)
-            } else {
-                Text(if (children.size > 1) "Choose a move" else "Next", style = MaterialTheme.typography.labelLarge, color = c.muted)
+            } else if (children.size > 1) {
+                // Where the lesson branches, each way on is a card; the button below takes the main line.
+                Text("Or choose a move", style = MaterialTheme.typography.labelLarge, color = c.muted)
                 children.forEachIndexed { i, child -> ChoiceRow(child, main = i == 0) { go(child.id) } }
             }
             if (node.id != ROOT_ID) Text(tree.lineTo(node.id), style = MaterialTheme.typography.bodySmall, color = c.muted)
+            if (node.id != ROOT_ID) RButton(
+                "Play from here against Maia",
+                { PlayLaunch.request.value = PlayRequest(node.fen, entry.side == PieceColor.WHITE, null, "${entry.title}, after ${node.label()}") },
+                style = ButtonStyle.Tonal, compact = true,
+            )
             Spacer(Modifier.height(16.dp))
         }
     }
@@ -177,8 +202,11 @@ private fun ChoiceRow(child: MoveNode, main: Boolean, onClick: () -> Unit) {
  * The state of one practice sitting. The board's tap handlers outlive recompositions, so they call into this object,
  * which always reads the current position, rather than into a function that closed over an old one.
  */
-private class PracticeSession(private val tree: wrklabs.chess.model.GameTree, side: PieceColor, private val onResult: (nodeId: String, solved: Boolean) -> Unit) {
-    val practice = LessonPractice(tree, side)
+private class PracticeSession(
+    private val tree: wrklabs.chess.model.GameTree, side: PieceColor, val humanShare: Map<String, Float>,
+    private val onResult: (nodeId: String, solved: Boolean) -> Unit,
+) {
+    val practice = LessonPractice(tree, side, humanShare = humanShare)
     var state by mutableStateOf(practice.start()); private set
     var selected by mutableStateOf<Square?>(null); private set
     var wrong by mutableStateOf<MoveNode?>(null); private set
@@ -213,10 +241,21 @@ private class PracticeSession(private val tree: wrklabs.chess.model.GameTree, si
 
 /** You play your side of the lesson; the app plays the other, steering you down branches you have not tried. */
 @Composable
-private fun PractiseBody(entry: LessonEntry, settings: AppSettings) {
+private fun ColumnScope.PractiseBody(entry: LessonEntry, settings: AppSettings) {
     val c = Palette.colors
     val scope = rememberCoroutineScope()
-    val session = remember(entry.key) { PracticeSession(entry.chapter.tree, entry.side) { nodeId, ok -> scope.launch { Graph.cards.recordLine(lineCardId(entry.key, nodeId), ok) } } }
+    // What people of your rating answer where the lesson branches, found before the first reply is chosen (a fraction of a second).
+    val human by produceState<Pair<Int, Map<String, Float>>?>(null, entry.key) {
+        val elo = Human.userElo(Graph.games.getAllGames().map { it.rating })
+        value = elo to runCatching { HumanReplies.compute(Graph.maia, entry.chapter.tree, entry.side, elo) }.getOrDefault(emptyMap())
+    }
+    val loaded = human
+    if (loaded == null) {
+        Box(Modifier.fillMaxWidth().padding(24.dp), contentAlignment = Alignment.Center) { CircularProgressIndicator(color = c.brand) }
+        return
+    }
+    val (elo, shares) = loaded
+    val session = remember(entry.key, loaded) { PracticeSession(entry.chapter.tree, entry.side, shares) { nodeId, ok -> scope.launch { Graph.cards.recordLine(lineCardId(entry.key, nodeId), ok) } } }
     val state = session.state
     val node = session.node
     val board = session.board
@@ -232,7 +271,12 @@ private fun PractiseBody(entry: LessonEntry, settings: AppSettings) {
             if (a != null && b != null) add(EngineArrow(a, b, c.win))
         }
     }
-    Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState())) {
+    BoardBody(footer = {
+        if (state.finished) ActionBar {
+            RButton("Play on against Maia", { PlayLaunch.request.value = PlayRequest(node.fen, entry.side == PieceColor.WHITE, null, "${entry.title}, the end of the line") }, Modifier.weight(1f), style = ButtonStyle.Tonal)
+            RButton("Another line", session::another, Modifier.weight(1f), icon = Icons.AutoMirrored.Filled.ArrowForward)
+        } else if (!showAnswer) ActionBar { RButton("Hint", { session.hint = true }, Modifier.fillMaxWidth(), style = ButtonStyle.Tonal) }
+    }) {
         ChessboardView(
             modifier = Modifier.fillMaxWidth(),
             board = board,
@@ -252,23 +296,21 @@ private fun PractiseBody(entry: LessonEntry, settings: AppSettings) {
                 state.finished -> RCard(Modifier.fillMaxWidth(), color = c.win.copy(alpha = 0.16f)) {
                     Text("End of the line.", style = MaterialTheme.typography.titleMedium, color = c.win)
                     Text(if (state.mistakes == 0) "No mistakes." else "${state.mistakes} wrong ${if (state.mistakes == 1) "move" else "moves"}.", style = MaterialTheme.typography.bodySmall, color = c.muted)
-                    Spacer(Modifier.height(10.dp))
-                    RButton("Another line", session::another, icon = Icons.AutoMirrored.Filled.ArrowForward)
                 }
                 wrong != null -> RCard(Modifier.fillMaxWidth(), color = c.danger.copy(alpha = 0.16f)) {
                     Text("Not the lesson move.", style = MaterialTheme.typography.titleMedium, color = c.danger)
                     Text(if (showAnswer) "The lesson plays ${expected?.label()}." else "Try again, or ask for a hint.", style = MaterialTheme.typography.bodySmall, color = c.muted)
                 }
-                else -> Text(if (state.played.isEmpty()) "Play your move." else "Your move.", style = MaterialTheme.typography.bodyMedium, color = c.muted)
+                else -> Text(if (state.played.isEmpty()) "Play your move." else "Your move.", style = MaterialTheme.typography.titleMedium, color = c.text)
             }
             // What the lesson says about the move you just played and the reply to it.
             if (wrong == null) state.played.filter { !it.comment.isNullOrBlank() }.forEach { m ->
                 RCard(Modifier.fillMaxWidth(), color = c.brandCard) {
                     Text(m.label() + m.signs().let { if (it.isEmpty()) "" else " $it" }, style = MaterialTheme.typography.labelLarge, color = c.brandCardText, fontWeight = FontWeight.Bold)
                     Text(m.comment.orEmpty(), style = MaterialTheme.typography.bodyMedium, color = c.brandCardText)
+                    session.humanShare[m.id]?.let { Text("${Human.share(it)} of players rated about $elo reply this way.", Modifier.padding(top = 6.dp), style = MaterialTheme.typography.labelMedium, color = c.brandCardText) }
                 }
             }
-            if (!state.finished && !showAnswer) RButton("Hint", { session.hint = true }, style = ButtonStyle.Tonal, compact = true)
             Text("${state.mistakes} wrong so far", style = MaterialTheme.typography.bodySmall, color = c.muted)
             Spacer(Modifier.height(16.dp))
         }
@@ -322,7 +364,7 @@ private class ReviewSession(val items: List<ReviewItem>, private val record: (ca
 
 /** The positions you missed in practice, as one-move questions, until they stick. */
 @Composable
-private fun LineReview(lessons: List<LessonEntry>, due: List<DueLine>, settings: AppSettings, onDone: () -> Unit) {
+private fun ColumnScope.LineReview(lessons: List<LessonEntry>, due: List<DueLine>, settings: AppSettings, onDone: () -> Unit) {
     val c = Palette.colors
     val scope = rememberCoroutineScope()
     val session = remember {
@@ -356,7 +398,16 @@ private fun LineReview(lessons: List<LessonEntry>, due: List<DueLine>, settings:
     val arrows = if (session.verdict == ReviewVerdict.Wrong && expected?.from != null && expected.to != null) {
         listOfNotNull(square(expected.from!!)?.let { a -> square(expected.to!!)?.let { b -> EngineArrow(a, b, c.win) } })
     } else emptyList()
-    Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState())) {
+    BoardBody(footer = {
+        when (session.verdict) {
+            ReviewVerdict.Right -> ActionBar { RButton("Next", session::next, Modifier.fillMaxWidth(), icon = Icons.AutoMirrored.Filled.ArrowForward) }
+            ReviewVerdict.Wrong -> ActionBar {
+                RButton("Retry", session::retry, Modifier.weight(1f), style = ButtonStyle.Tonal)
+                RButton("Next", session::next, Modifier.weight(1f))
+            }
+            else -> Unit
+        }
+    }) {
         Column(Modifier.padding(horizontal = 14.dp, vertical = 4.dp)) {
             Text("${session.index + 1} of ${session.items.size} · ${item.entry.title}", style = MaterialTheme.typography.labelLarge, color = c.muted)
             if (shown.id != ROOT_ID) Text(tree.lineTo(shown.id), style = MaterialTheme.typography.bodySmall, color = c.muted)
@@ -378,23 +429,18 @@ private fun LineReview(lessons: List<LessonEntry>, due: List<DueLine>, settings:
         )
         Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             when (session.verdict) {
-                ReviewVerdict.Playing -> Text("Find the lesson move.", style = MaterialTheme.typography.bodyMedium, color = c.muted)
+                ReviewVerdict.Playing -> Text("Find the lesson move.", style = MaterialTheme.typography.titleMedium, color = c.text)
                 ReviewVerdict.Right -> {
                     RCard(Modifier.fillMaxWidth(), color = c.win.copy(alpha = 0.16f)) {
                         Text("Right: ${session.answered?.label().orEmpty()}", style = MaterialTheme.typography.titleMedium, color = c.win)
                         session.answered?.comment?.takeIf { it.isNotBlank() }?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = c.muted) }
                     }
-                    RButton("Next", session::next, icon = Icons.AutoMirrored.Filled.ArrowForward)
                 }
                 ReviewVerdict.Wrong -> {
                     RCard(Modifier.fillMaxWidth(), color = c.danger.copy(alpha = 0.16f)) {
                         Text("The lesson plays ${expected?.label().orEmpty()}.", style = MaterialTheme.typography.titleMedium, color = c.danger)
                         expected?.comment?.takeIf { it.isNotBlank() }?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = c.muted) }
                         Text("It comes back today.", style = MaterialTheme.typography.bodySmall, color = c.muted)
-                    }
-                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        RButton("Retry", session::retry, style = ButtonStyle.Tonal, compact = true)
-                        RButton("Next", session::next, compact = true)
                     }
                 }
             }

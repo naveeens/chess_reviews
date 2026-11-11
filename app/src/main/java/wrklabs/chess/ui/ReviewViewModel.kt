@@ -12,6 +12,9 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import wrklabs.chess.Graph
+import wrklabs.chess.maia.Human
+import wrklabs.chess.maia.HumanMove
+import wrklabs.chess.maia.MaiaEncoder
 import wrklabs.chess.billing.ReviewQuota
 import wrklabs.chess.classifier.GameReport
 import wrklabs.chess.classifier.MoveClass
@@ -68,6 +71,9 @@ data class ReviewUiState(
     /** "Show why": the game move being explained, and what the engine's reply to it comes to (null while it plays out). */
     val whyFrom: String? = null,
     val whyText: String? = null,
+    /** The line that follows a move that went wrong, as text, and the move it is for. Worked out ahead of "Show why", which plays it. */
+    val playedLine: String? = null,
+    val playedLineFor: String? = null,
     /** The engine's move shown in place of the one played; null while the game's own move is shown. */
     val bestNodeId: String? = null,
     /** The move the engine's move on show stands in for. */
@@ -83,6 +89,8 @@ data class ReviewUiState(
     val opening: Opening? = null,
     /** The opening the whole game came to, for the header. */
     val gameOpening: Opening? = null,
+    /** How players of the mover's rating play the position before each move looked at, by node: Maia's view of it. */
+    val human: Map<String, HumanMove> = emptyMap(),
 ) {
     val currentNode: MoveNode get() = tree.nodes[currentNodeId] ?: tree.nodes.getValue(ROOT_ID)
     val board: ChessBoard get() = ChessBoard.fromFen(currentNode.fen)
@@ -237,7 +245,8 @@ class ReviewViewModel(application: Application) : AndroidViewModel(application) 
         val color = if (game.black.equals(me, true)) PieceColor.BLACK else if (game.white.equals(me, true)) PieceColor.WHITE else null
         val info = GameInfo(game.key, game.source, game.white, game.black, game.whiteRating, game.blackRating, game.result, game.timeClass, game.date, color, game.pgn)
         val parsed = PgnParser.parse(game.pgn)
-        var tree = GameTree.create()
+        // A game played from a set-up position says where it started.
+        var tree = GameTree.create(parsed.headers["FEN"]?.takeIf { parsed.headers["SetUp"] == "1" } ?: wrklabs.chess.model.ChessBoard.DEFAULT_FEN)
         var id = ROOT_ID
         for (san in parsed.moves) {
             val (t, n) = tree.addMoveBySan(id, san) ?: break
@@ -318,6 +327,7 @@ class ReviewViewModel(application: Application) : AndroidViewModel(application) 
         if (s.reviewing || s.thinking) return
         liveJob = viewModelScope.launch {
             loadCandidates()
+            loadPlayedLine()
             if (_state.value.onBranch) liveEval()
         }
     }
@@ -370,6 +380,23 @@ class ReviewViewModel(application: Application) : AndroidViewModel(application) 
         _state.update { it.copy(grades = it.grades + (nodeId to review)) }
     }
 
+    /** For a move that went wrong: how the game went on from it, so the card can say it before "Show why" plays it. */
+    private suspend fun loadPlayedLine() {
+        val s = _state.value
+        val review = s.playedReview ?: return
+        if (review.cls !in setOf(MoveClass.MISTAKE, MoveClass.MISS, MoveClass.BLUNDER)) return
+        val node = s.playedNode
+        if (s.playedLineFor == node.id) return
+        val parent = node.parentId?.let { s.tree.nodes[it] } ?: return
+        val uci = node.uci ?: return
+        val cfg = settings.value
+        val pos = service.position(node.fen, WhyLine.depthFor(cfg.lineLength), WhyLine.msFor(cfg.lineLength, WHY_MS))
+        if (pos.pv.isEmpty()) return
+        val after = WhyLine.plan(node.fen, pos.pv, plies = cfg.lineLength).map { it.uci }
+        val text = WhyLine.sanLine(parent.fen, listOf(uci) + after)
+        _state.update { if (it.playedNode.id == node.id) it.copy(playedLine = text, playedLineFor = node.id) else it }
+    }
+
     /** The engine's best three in the position the move on the card was played from. */
     private suspend fun loadCandidates() {
         val s = _state.value
@@ -381,7 +408,7 @@ class ReviewViewModel(application: Application) : AndroidViewModel(application) 
         val fen = s.tree.nodes[parentId]?.fen ?: return
         val cfg = settings.value
         val result = engine.analyze(
-            AnalyzeRequest(fen = fen, multiPv = 2, depth = 14, movetime = CANDIDATE_MS),
+            AnalyzeRequest(fen = fen, multiPv = 2, depth = WhyLine.depthFor(cfg.lineLength), movetime = WhyLine.msFor(cfg.lineLength, CANDIDATE_MS)),
         )
         val found = result?.lines.orEmpty().mapNotNull { line ->
             val uci = line.pv.firstOrNull() ?: return@mapNotNull null
@@ -431,8 +458,32 @@ class ReviewViewModel(application: Application) : AndroidViewModel(application) 
             )
         }
         if (!quiet && nodeId != prev) sound(node)
+        loadHuman(nodeId)
         // While a line is being shown the engine is left alone: the line is what is being looked at.
         if (_state.value.whyFrom == null) refresh()
+    }
+
+    /** Asks Maia how people of the mover's rating play the position this game move was made in. A few milliseconds; shown when it arrives. */
+    private fun loadHuman(nodeId: String) {
+        val s = _state.value
+        if (nodeId == ROOT_ID || nodeId !in s.gameIds || nodeId in s.human) return
+        val node = s.tree.nodes[nodeId] ?: return
+        val uci = node.uci ?: return
+        val before = generateSequence(node.parentId?.let { s.tree.nodes[it] }) { n -> n.parentId?.let { s.tree.nodes[it] } }
+            .take(MaiaEncoder.HISTORY).map { it.fen }.toList().asReversed()
+        if (before.isEmpty()) return
+        val whiteMoved = ChessBoard.fromFen(before.last()).turn == PieceColor.WHITE
+        val info = s.info
+        val own = Human.clampElo(if (whiteMoved) info?.whiteRating else info?.blackRating)
+        val other = Human.clampElo(if (whiteMoved) info?.blackRating else info?.whiteRating, own)
+        val key = info?.key
+        viewModelScope.launch {
+            val probs = runCatching { Graph.maia.predict(before, own, other) }.getOrNull() ?: return@launch
+            val top = probs.maxByOrNull { it.value } ?: return@launch
+            val move = HumanMove(own, probs[uci] ?: 0f, top.key, top.value)
+            // A game opened since is not this one.
+            _state.update { if (it.info?.key == key) it.copy(human = it.human + (nodeId to move)) else it }
+        }
     }
 
     fun select(nodeId: String) = goTo(nodeId)
@@ -501,12 +552,12 @@ class ReviewViewModel(application: Application) : AndroidViewModel(application) 
         if (cand.pv.firstOrNull() != uci) return
         val mover = if (played.ply % 2 == 1) PieceColor.WHITE else PieceColor.BLACK
         val mating = (cand.score as? Score.Mate)?.let { it.value != 0 && ((mover == PieceColor.WHITE) == (it.value > 0)) } == true
-        val plan = WhyLine.plan(fen, cand.pv, mating).map { it.uci }.drop(1)
+        val plan = WhyLine.plan(fen, cand.pv, mating, settings.value.lineLength).map { it.uci }.drop(1)
         whyJob?.cancel()
         whyJob = viewModelScope.launch {
             var last = first
             for (move in plan) {
-                delay(900)
+                delay(WhyLine.PLY_MS)
                 val st = _state.value
                 if (st.bestNodeId != last || st.currentNodeId != last) return@launch   // you moved on
                 val (t, n) = st.tree.addMove(last, move) ?: break
@@ -549,7 +600,7 @@ class ReviewViewModel(application: Application) : AndroidViewModel(application) 
         _state.update { it.copy(whyFrom = played.id, whyText = null) }
         val fen = start.fen
         whyJob = viewModelScope.launch {
-            val line = engine.analyze(AnalyzeRequest(fen = fen, multiPv = 1, depth = 14, movetime = WHY_MS))?.lines?.firstOrNull()
+            val line = service.position(fen, WhyLine.depthFor(settings.value.lineLength), WhyLine.msFor(settings.value.lineLength, WHY_MS)).takeIf { it.pv.isNotEmpty() }
             if (line == null) {
                 _state.update { if (it.whyFrom == played.id) it.copy(whyText = "The engine had nothing to add here.") else it }
                 return@launch
@@ -557,10 +608,10 @@ class ReviewViewModel(application: Application) : AndroidViewModel(application) 
             _state.update { if (it.whyFrom == played.id) it.copy(staleScore = line.score) else it }
 
             // Which of the engine's moves to play.
-            val plan = WhyLine.plan(fen, line.pv).map { it.uci }
+            val plan = WhyLine.plan(fen, line.pv, plies = settings.value.lineLength).map { it.uci }
 
             for ((i, uci) in plan.withIndex()) {
-                delay(if (i == 0) 500 else 900)
+                delay(if (i == 0) 500 else WhyLine.PLY_MS)
                 val st = _state.value
                 if (st.whyFrom != played.id) return@launch   // you moved on
                 val (t, n) = st.tree.addMove(st.currentNodeId, uci) ?: break
